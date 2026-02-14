@@ -1,5 +1,5 @@
 
-import React, { ChangeEvent } from 'react';
+import React from 'react';
 import type { Style, TableRowData, Character } from '../types';
 import { ResultsTable } from './ResultsTable';
 import { FileDropzone } from './FileDropzone';
@@ -42,12 +42,6 @@ export const ResultsView: React.FC<ResultsViewProps> = ({
   isProcessing = false,
   ...rest
 }) => {
-  const handleDocInputChange = (event: ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (file) onDocUpload(file);
-    event.target.value = '';
-  };
-
   return (
     <section className="bg-white dark:bg-[#0b2b1e] border border-gray-200 dark:border-[#1f4d3a] p-8 rounded-xl space-y-8 min-h-[400px] flex flex-col">
       <div className="flex justify-between items-center flex-wrap gap-4 border-b border-gray-100 dark:border-gray-800 pb-4">
@@ -77,7 +71,7 @@ export const ResultsView: React.FC<ResultsViewProps> = ({
                 onDrop={(f) => onDocUpload(f[0])} 
                 accept=".txt,.docx" 
                 className="group relative h-64 bg-gray-50 dark:bg-[#020a06] border-4 border-dashed border-gray-300 dark:border-gray-700 rounded-3xl p-10 flex flex-col items-center justify-center hover:border-green-500 dark:hover:border-green-500 transition-all cursor-pointer overflow-hidden shadow-inner"
-                dropMessage="Thả kịch bản vào đây"
+                dropMessage="Tải kịch bản của bạn"
             >
                 {isProcessing ? (
                     <div className="flex flex-col items-center space-y-4">
@@ -87,9 +81,8 @@ export const ResultsView: React.FC<ResultsViewProps> = ({
                 ) : (
                     <>
                         <div className="mb-4 text-6xl group-hover:scale-110 transition-transform">📄</div>
-                        <p className="text-lg font-bold text-gray-700 dark:text-gray-200 mb-2">Chọn tệp kịch bản của bạn</p>
+                        <p className="text-lg font-bold text-gray-700 dark:text-gray-200 mb-2">Nhấn hoặc thả tệp kịch bản vào đây</p>
                         <p className="text-sm text-gray-400">Hỗ trợ định dạng .docx hoặc .txt</p>
-                        <input type="file" className="absolute inset-0 opacity-0 cursor-pointer" accept=".txt,.docx" onChange={handleDocInputChange} />
                     </>
                 )}
             </FileDropzone>

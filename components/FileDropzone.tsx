@@ -7,7 +7,7 @@ interface FileDropzoneProps {
   children: React.ReactNode;
   className?: string;
   dropMessage?: string;
-  disableClick?: boolean; // Thuộc tính mới
+  disableClick?: boolean;
 }
 
 export const FileDropzone: React.FC<FileDropzoneProps> = ({ 
@@ -16,7 +16,7 @@ export const FileDropzone: React.FC<FileDropzoneProps> = ({
   children, 
   className, 
   dropMessage = 'Thả tệp vào đây',
-  disableClick = false // Mặc định là cho phép click
+  disableClick = false 
 }) => {
   const [isDragActive, setIsDragActive] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -70,7 +70,13 @@ export const FileDropzone: React.FC<FileDropzoneProps> = ({
   }, [onDrop, accept, acceptedTypes]);
 
   const handleClick = (e: React.MouseEvent) => {
-    if (disableClick) return;
+    // Nếu disableClick=true hoặc click vào một phần tử tương tác (button, input, textarea)
+    // thì không kích hoạt chọn file của Dropzone
+    const target = e.target as HTMLElement;
+    const isInteractive = ['BUTTON', 'INPUT', 'TEXTAREA', 'SELECT', 'A'].includes(target.tagName);
+    
+    if (disableClick || isInteractive) return;
+    
     inputRef.current?.click();
   };
 
@@ -89,6 +95,7 @@ export const FileDropzone: React.FC<FileDropzoneProps> = ({
           ref={inputRef}
           onChange={(e) => {
             processFiles(e.target.files);
+            // Quan trọng: Reset value để có thể chọn lại chính file đó nếu cần
             e.target.value = '';
           }}
           accept={accept}
