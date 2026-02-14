@@ -1,7 +1,7 @@
 
 import React, { useState } from 'react';
 import { GoogleGenAI } from '@google/genai';
-import type { GeminiModel } from '../types';
+import type { GeminiModel, ImageGenModel } from '../types';
 
 interface ApiKeyManagerProps {
   isOpen: boolean;
@@ -10,6 +10,8 @@ interface ApiKeyManagerProps {
   setApiKeys: (keys: string[]) => void;
   selectedModel: GeminiModel;
   onSelectModel: (model: GeminiModel) => void;
+  selectedImageModel: ImageGenModel;
+  onSelectImageModel: (model: ImageGenModel) => void;
 }
 
 type ValidationStatus = 'idle' | 'validating' | 'valid' | 'invalid';
@@ -20,7 +22,17 @@ const MODELS: { value: GeminiModel; label: string }[] = [
     { value: 'gemini-flash-lite-latest', label: 'Gemini Flash Lite (Tiết kiệm nhất)' },
 ];
 
-export const ApiKeyManager: React.FC<ApiKeyManagerProps> = ({ isOpen, onClose, apiKeys, setApiKeys, selectedModel, onSelectModel }) => {
+const IMAGE_MODELS: { value: ImageGenModel; label: string; desc: string }[] = [
+    { value: 'gemini-2.5-flash-image', label: 'Gemini 2.5 Flash Image', desc: 'Tốc độ nhanh, chỉnh sửa ảnh cục bộ, giữ nhất quán nhân vật tốt.' },
+    { value: 'gemini-3-pro-image-preview', label: 'Gemini 3 Pro Image', desc: 'Chất lượng studio (4K), hiển thị văn bản chuẩn, xử lý prompt phức tạp.' },
+    { value: 'imagen-3.0-generate-001', label: 'Imagen 3', desc: 'Chuyên tạo ảnh chân thực (Photorealism), chi tiết nghệ thuật cao.' },
+];
+
+export const ApiKeyManager: React.FC<ApiKeyManagerProps> = ({ 
+    isOpen, onClose, apiKeys, setApiKeys, 
+    selectedModel, onSelectModel,
+    selectedImageModel, onSelectImageModel
+}) => {
   const [newKey, setNewKey] = useState('');
   const [validationStatus, setValidationStatus] = useState<ValidationStatus>('idle');
   const [validationMessage, setValidationMessage] = useState<string | null>(null);
@@ -30,7 +42,6 @@ export const ApiKeyManager: React.FC<ApiKeyManagerProps> = ({ isOpen, onClose, a
   const validateApiKey = async (key: string): Promise<boolean> => {
     try {
       const ai = new GoogleGenAI({ apiKey: key });
-      // Sử dụng model Flash để xác thực vì nó phổ biến và nhanh nhất
       await ai.models.generateContent({
         model: 'gemini-3-flash-preview',
         contents: 'hi',
@@ -59,23 +70,41 @@ export const ApiKeyManager: React.FC<ApiKeyManagerProps> = ({ isOpen, onClose, a
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-75 flex justify-center items-center z-[100] p-4" onClick={onClose}>
-      <div className="bg-white dark:bg-[#0b2b1e] border border-gray-200 dark:border-[#1f4d3a] p-8 rounded-xl space-y-6 max-w-2xl w-full" onClick={(e) => e.stopPropagation()}>
+      <div className="bg-white dark:bg-[#0b2b1e] border border-gray-200 dark:border-[#1f4d3a] p-8 rounded-xl space-y-6 max-w-2xl w-full max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
         <div className="flex justify-between items-center">
             <h3 className="text-xl font-bold text-gray-900 dark:text-white">Cấu hình API & Model</h3>
             <button onClick={onClose} className="text-gray-500 dark:text-gray-400 text-3xl">&times;</button>
         </div>
         
-        <div className="space-y-4">
-            <div>
-                <label className="block text-sm font-semibold mb-2">Chọn mô hình AI (Model)</label>
-                <select 
-                    value={selectedModel}
-                    onChange={(e) => onSelectModel(e.target.value as GeminiModel)}
-                    className="w-full bg-gray-50 dark:bg-[#020a06] border border-gray-300 dark:border-[#1f4d3a] text-gray-900 dark:text-gray-200 p-3 rounded-lg outline-none focus:ring-2 focus:ring-green-400 transition-all font-medium"
-                >
-                    {MODELS.map(m => <option key={m.value} value={m.value}>{m.label}</option>)}
-                </select>
-                <p className="text-[10px] text-gray-500 mt-1 italic">* Lưu ý: Model 3 Pro yêu cầu Key có quyền truy cập Preview.</p>
+        <div className="space-y-6">
+            <div className="grid md:grid-cols-2 gap-4">
+                <div>
+                    <label className="block text-sm font-semibold mb-2">Model Xử Lý Kịch Bản</label>
+                    <select 
+                        value={selectedModel}
+                        onChange={(e) => onSelectModel(e.target.value as GeminiModel)}
+                        className="w-full bg-gray-50 dark:bg-[#020a06] border border-gray-300 dark:border-[#1f4d3a] text-gray-900 dark:text-gray-200 p-3 rounded-lg outline-none focus:ring-2 focus:ring-green-400 transition-all font-medium text-sm"
+                    >
+                        {MODELS.map(m => <option key={m.value} value={m.value}>{m.label}</option>)}
+                    </select>
+                </div>
+                <div>
+                    <label className="block text-sm font-semibold mb-2">Model Tạo Ảnh (Image Gen)</label>
+                    <select 
+                        value={selectedImageModel}
+                        onChange={(e) => onSelectImageModel(e.target.value as ImageGenModel)}
+                        className="w-full bg-gray-50 dark:bg-[#020a06] border border-gray-300 dark:border-[#1f4d3a] text-gray-900 dark:text-gray-200 p-3 rounded-lg outline-none focus:ring-2 focus:ring-green-400 transition-all font-medium text-sm"
+                    >
+                        {IMAGE_MODELS.map(m => <option key={m.value} value={m.value}>{m.label}</option>)}
+                    </select>
+                </div>
+            </div>
+            
+            <div className="bg-gray-100 dark:bg-green-900/10 p-4 rounded-lg border border-gray-200 dark:border-green-900/20">
+                <p className="text-xs font-bold text-gray-700 dark:text-green-300 mb-1">Thông tin Model ảnh đang chọn:</p>
+                <p className="text-xs text-gray-600 dark:text-gray-400 italic">
+                    {IMAGE_MODELS.find(m => m.value === selectedImageModel)?.desc}
+                </p>
             </div>
 
             <div className="border-t border-gray-200 dark:border-gray-700 pt-4">

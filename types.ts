@@ -47,3 +47,6 @@ export interface ChatMessage {
 
 // Cập nhật lại các Model ID chuẩn
 export type GeminiModel = 'gemini-3-pro-preview' | 'gemini-3-flash-preview' | 'gemini-flash-lite-latest';
+
+// Các Model tạo ảnh hỗ trợ
+export type ImageGenModel = 'gemini-2.5-flash-image' | 'gemini-3-pro-image-preview' | 'imagen-3.0-generate-001';

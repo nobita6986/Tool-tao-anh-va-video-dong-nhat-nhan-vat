@@ -2,7 +2,7 @@
 import React, { useState, useCallback, ChangeEvent, useEffect, useRef } from 'react';
 import { GoogleGenAI } from '@google/genai';
 import { STYLES, PRESET_PROMPT_CONTEXT } from './constants';
-import type { Style, Character, TableRowData, ExcelRow, AdjustmentOptions, ColumnMapping, ChatMessage, GeminiModel } from './types';
+import type { Style, Character, TableRowData, ExcelRow, AdjustmentOptions, ColumnMapping, ChatMessage, GeminiModel, ImageGenModel } from './types';
 import { StyleSelector } from './components/StyleSelector';
 import { CharacterManager } from './components/CharacterManager';
 import { ResultsView } from './components/ResultsView';
@@ -17,9 +17,6 @@ import { getPromptAndPartsForRow } from './utils/fileUtils';
 import { ChatModal } from './components/ChatModal';
 import { ApiKeyManager } from './components/ApiKeyManager';
 import { ScriptProcessingModal, SegmentationMethod } from './components/ScriptProcessingModal';
-
-// Model chuyên dụng để tạo ảnh
-const IMAGE_GEN_MODEL = 'gemini-2.5-flash-image';
 
 const normalizeName = (name: string): string => {
   if (!name) return '';
@@ -68,8 +65,15 @@ export default function App() {
   const [theme, setTheme] = useState(localStorage.getItem('theme') || 'dark');
   const [videoPromptNote, setVideoPromptNote] = useState('');
   const [isProcessingScript, setIsProcessingScript] = useState(false);
+  
+  // Model xử lý văn bản (Text Model)
   const [selectedModel, setSelectedModel] = useState<GeminiModel>(() => {
     return (localStorage.getItem('selected_gemini_model') as GeminiModel) || 'gemini-3-flash-preview';
+  });
+
+  // Model tạo ảnh (Image Model)
+  const [selectedImageModel, setSelectedImageModel] = useState<ImageGenModel>(() => {
+    return (localStorage.getItem('selected_image_model') as ImageGenModel) || 'gemini-2.5-flash-image';
   });
 
   const [isApiKeyManagerOpen, setIsApiKeyManagerOpen] = useState(false);
@@ -103,6 +107,11 @@ export default function App() {
   const handleUpdateModel = (model: GeminiModel) => {
     setSelectedModel(model);
     localStorage.setItem('selected_gemini_model', model);
+  };
+
+  const handleUpdateImageModel = (model: ImageGenModel) => {
+    setSelectedImageModel(model);
+    localStorage.setItem('selected_image_model', model);
   };
   
   const toggleTheme = () => setTheme(prevTheme => prevTheme === 'dark' ? 'light' : 'dark');
@@ -265,12 +274,41 @@ LƯU Ý: Không thêm văn bản thừa ngoài bảng Markdown.`;
       });
       
       const { ai } = getAiInstance(keyIdx);
-      const response = await ai.models.generateContent({ 
-        model: IMAGE_GEN_MODEL, 
-        contents: { parts: parts } 
-      });
-      
-      const generatedBase64 = response.candidates?.[0]?.content?.parts?.find(p => p.inlineData)?.inlineData?.data;
+      let generatedBase64: string | undefined;
+
+      if (selectedImageModel.includes('imagen')) {
+         // Imagen Model: Sử dụng generateImages (Chỉ Text-to-Image)
+         // Lưu ý: Imagen qua SDK này thường chỉ nhận text prompt, không nhận parts (ảnh tham chiếu) trực tiếp theo cách của Gemini
+         const response = await ai.models.generateImages({
+            model: selectedImageModel,
+            prompt: prompt,
+            config: {
+                numberOfImages: 1,
+                aspectRatio: '16:9',
+                outputMimeType: 'image/jpeg'
+            }
+         });
+         generatedBase64 = response.generatedImages?.[0]?.image?.imageBytes;
+      } else {
+         // Gemini Models (Nano Banana): Sử dụng generateContent (Hỗ trợ Image-to-Image / Multimodal)
+         
+         const imageConfig: any = {
+             aspectRatio: '16:9'
+         };
+         // Tự động nâng cấp lên 2K nếu là bản Pro để tận dụng khả năng của model
+         if (selectedImageModel === 'gemini-3-pro-image-preview') {
+             imageConfig.imageSize = '2K';
+         }
+
+         const response = await ai.models.generateContent({ 
+            model: selectedImageModel, 
+            contents: { parts: parts },
+            config: {
+                imageConfig
+            }
+         });
+         generatedBase64 = response.candidates?.[0]?.content?.parts?.find(p => p.inlineData)?.inlineData?.data;
+      }
       
       if (generatedBase64) {
         const imageUrl = `data:image/png;base64,${generatedBase64}`;
@@ -302,7 +340,7 @@ LƯU Ý: Không thêm văn bản thừa ngoài bảng Markdown.`;
       if (finalError.includes("429")) finalError = "Hạn mức API đã hết trên tất cả các Key. Hãy kiểm tra gói cước hoặc thêm Key mới.";
       setTableData(prev => prev.map(r => r.id === rowId ? { ...r, error: `Lỗi: ${finalError}`, isGenerating: false } : r));
     }
-  }, [getAiInstance]);
+  }, [getAiInstance, selectedImageModel]);
 
   const handleGenerateAllImages = useCallback(async () => {
     const rowsToProcess = tableData.filter(r => r.generatedImages.length === 0 && !r.isGenerating);
@@ -444,6 +482,8 @@ LƯU Ý: Không thêm văn bản thừa ngoài bảng Markdown.`;
         setApiKeys={handleUpdateApiKeys} 
         selectedModel={selectedModel} 
         onSelectModel={handleUpdateModel} 
+        selectedImageModel={selectedImageModel}
+        onSelectImageModel={handleUpdateImageModel}
       />
 
       <ScriptProcessingModal 
