@@ -213,13 +213,13 @@ Kịch bản: "${scriptText.substring(0, 3000)}"`;
 
                   <button
                     onClick={(e) => { e.stopPropagation(); onSetDefault(defaultCharacterIndex === index ? null : index); }}
-                    className={`w-full py-2 rounded-lg text-xs font-bold transition-all ${
+                    className={`w-full py-2.5 rounded-xl text-xs font-black uppercase tracking-widest transition-all ${
                       defaultCharacterIndex === index 
-                      ? 'bg-green-600 text-white' 
-                      : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 hover:bg-gray-200'
+                      ? 'bg-green-600 text-white shadow-lg shadow-green-600/20' 
+                      : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 hover:bg-gray-200 border border-transparent'
                     }`}
                   >
-                    {defaultCharacterIndex === index ? '✓ Nhân vật mặc định' : 'Đặt làm mặc định'}
+                    {defaultCharacterIndex === index ? '✓ Đang sử dụng' : 'Sử dụng nhân vật này'}
                   </button>
                 </div>
               </div>
