@@ -16,6 +16,7 @@ import { SunIcon, MoonIcon } from './components/icons';
 import { getPromptAndPartsForRow } from './utils/fileUtils';
 import { ChatModal } from './components/ChatModal';
 import { ApiKeyManager } from './components/ApiKeyManager';
+import { ScriptProcessingModal, SegmentationMethod } from './components/ScriptProcessingModal';
 
 // Model chuyên dụng để tạo ảnh
 const IMAGE_GEN_MODEL = 'gemini-2.5-flash-image';
@@ -76,6 +77,8 @@ export default function App() {
     const saved = localStorage.getItem('user_api_keys');
     return saved ? JSON.parse(saved) : [];
   });
+
+  const [pendingScriptFile, setPendingScriptFile] = useState<File | null>(null);
 
   const [chatState, setChatState] = useState<'closed' | 'open' | 'minimized'>('closed');
   const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
@@ -183,7 +186,7 @@ export default function App() {
     }
   }, [characters, tableData]);
 
-  const handleDocUpload = useCallback(async (file: File) => {
+  const handleDocUpload = useCallback(async (file: File, method: SegmentationMethod, customRule?: string) => {
     setIsProcessingScript(true);
     
     const runProcessing = async (keyIdx = 0): Promise<void> => {
@@ -191,7 +194,20 @@ export default function App() {
             const scriptText = await readTextFile(file);
             const { ai } = getAiInstance(keyIdx);
             
-            const systemInstruction = `Bạn là một chuyên gia kịch bản. Chuyển kịch bản thành bảng phân cảnh 5 cột Markdown: STT, Kịch bản Anh, Kịch bản Việt, Tóm tắt, Prompt tiếng Anh chi tiết. Không thêm văn bản thừa.`;
+            let segmentationInstruction = '';
+            if (method === 'current') {
+              segmentationInstruction = 'Chia nhỏ kịch bản trên ra thành các dòng ngắn 7-15 chữ, đảm bảo không cắt ngang câu.';
+            } else if (method === 'punctuation') {
+              segmentationInstruction = 'Chia nhỏ kịch bản trên theo từng câu hoàn chỉnh (dựa trên dấu chấm câu).';
+            } else {
+              segmentationInstruction = `Phân đoạn kịch bản theo yêu cầu sau: ${customRule}`;
+            }
+
+            const systemInstruction = `Bạn là một chuyên gia kịch bản. Chuyển kịch bản thành bảng phân cảnh 5 cột Markdown: STT, Kịch bản Anh, Kịch bản Việt, Tóm tắt, Prompt tiếng Anh chi tiết.
+QUY TẮC PHÂN CẢNH: ${segmentationInstruction}
+DỊCH THUẬT: Tự động dịch sang tiếng Anh cho cột "Kịch bản Anh".
+PROMPT: Viết prompt tiếng Anh chi tiết cho bối cảnh.
+LƯU Ý: Không thêm văn bản thừa ngoài bảng Markdown.`;
 
             const response = await ai.models.generateContent({
                 model: selectedModel, 
@@ -227,6 +243,7 @@ export default function App() {
             alert(`Lỗi xử lý kịch bản: ${error.message}`);
         } finally {
             setIsProcessingScript(false);
+            setPendingScriptFile(null);
         }
     };
 
@@ -362,6 +379,10 @@ export default function App() {
     } finally { setIsAiReplying(false); }
   };
 
+  const handleInitiateScriptUpload = (file: File) => {
+    setPendingScriptFile(file);
+  };
+
   return (
     <>
       <header className="sticky top-0 z-50 bg-white/80 dark:bg-[#020a06]/80 backdrop-blur-md border-b border-gray-200 dark:border-[#1f4d3a] py-3 px-6 header-bg">
@@ -387,7 +408,7 @@ export default function App() {
       </header>
       
       <main className="container mx-auto p-6">
-       <FileDropzone onDrop={(f) => handleDocUpload(f[0])} accept=".txt,.docx" dropMessage="Tải kịch bản" disableClick={true}>
+       <FileDropzone onDrop={(f) => handleInitiateScriptUpload(f[0])} accept=".txt,.docx" dropMessage="Tải kịch bản" disableClick={true}>
         {!selectedStyle ? ( <StyleSelector onSelectStyle={handleStyleSelect} /> ) : (
           <div className="space-y-6">
             <CharacterManager 
@@ -405,7 +426,7 @@ export default function App() {
                   return { ai, rotate: () => {} }; 
               }}
             />
-            <ResultsView selectedStyle={selectedStyle} tableData={tableData} characters={characters} defaultCharacterIndex={defaultCharacterIndex} onBack={handleBackToStyles} onDocUpload={handleDocUpload} onUpdateRow={handleUpdateRow} onGenerateImage={generateImage} onGenerateAllImages={handleGenerateAllImages} onGenerateVideoPrompt={generateVideoPromptForRow} onGenerateAllVideoPrompts={() => tableData.forEach(r => generateVideoPromptForRow(r.id))} onDownloadAll={() => createProjectAssetsZip(tableData, `images_assets.zip`)} onViewImage={setViewingImage} onStartRemake={setRemakingRow} onOpenHistory={setHistoryRow} onSendToVideo={(id) => generateVideoPromptForRow(id)} isProcessing={isProcessingScript} />
+            <ResultsView selectedStyle={selectedStyle} tableData={tableData} characters={characters} defaultCharacterIndex={defaultCharacterIndex} onBack={handleBackToStyles} onDocUpload={handleInitiateScriptUpload} onUpdateRow={handleUpdateRow} onGenerateImage={generateImage} onGenerateAllImages={handleGenerateAllImages} onGenerateVideoPrompt={generateVideoPromptForRow} onGenerateAllVideoPrompts={() => tableData.forEach(r => generateVideoPromptForRow(r.id))} onDownloadAll={() => createProjectAssetsZip(tableData, `images_assets.zip`)} onViewImage={setViewingImage} onStartRemake={setRemakingRow} onOpenHistory={setHistoryRow} onSendToVideo={(id) => generateVideoPromptForRow(id)} isProcessing={isProcessingScript} />
           </div>
         )}
        </FileDropzone>
@@ -423,6 +444,16 @@ export default function App() {
         setApiKeys={handleUpdateApiKeys} 
         selectedModel={selectedModel} 
         onSelectModel={handleUpdateModel} 
+      />
+
+      <ScriptProcessingModal 
+        isOpen={!!pendingScriptFile} 
+        onClose={() => setPendingScriptFile(null)} 
+        onConfirm={(method, customRule) => {
+          if (pendingScriptFile) {
+            handleDocUpload(pendingScriptFile, method, customRule);
+          }
+        }} 
       />
 
       <ChatModal isOpen={chatState === 'open'} onClose={() => setChatState('closed')} onMinimize={() => setChatState('minimized')} messages={chatMessages} onSendMessage={handleSendMessageToAI} isAiReplying={isAiReplying} onPresentScript={() => {}} />
