@@ -112,20 +112,21 @@ Ví dụ:
                           const originalIndex = STYLES.indexOf(style);
                           const isActive = selectedStyleIndex === originalIndex;
                           return (
-                            <div
-                              key={style.title}
-                              onClick={() => setSelectedStyleIndex(originalIndex)}
-                              className={`flex items-center gap-4 p-4 cursor-pointer border-b border-gray-100 dark:border-gray-800/50 last:border-none transition-all hover:bg-white dark:hover:bg-green-900/10 ${isActive ? 'bg-white dark:bg-green-900/20 ring-1 ring-inset ring-green-500' : ''}`}
-                            >
-                              <img src={style.imageUrl} className="w-12 h-12 rounded-xl object-cover shadow-sm" alt="" />
-                              <div className="flex-grow">
-                                <div className="flex justify-between items-center">
-                                  <p className={`font-bold text-sm ${isActive ? 'text-green-600 dark:text-green-400' : 'text-gray-900 dark:text-white'}`}>{style.title}</p>
-                                  {isActive && <span className="text-[10px] bg-green-100 dark:bg-green-900 text-green-700 dark:text-green-300 px-2 py-0.5 rounded-full font-bold uppercase tracking-tighter">Đang chọn</span>}
+                            <Tooltip key={style.title} content={style.tooltip || style.description} position="top" className="w-full !justify-start">
+                                <div
+                                onClick={() => setSelectedStyleIndex(originalIndex)}
+                                className={`flex items-center gap-4 p-4 cursor-pointer border-b border-gray-100 dark:border-gray-800/50 last:border-none transition-all hover:bg-white dark:hover:bg-green-900/10 w-full ${isActive ? 'bg-white dark:bg-green-900/20 ring-1 ring-inset ring-green-500' : ''}`}
+                                >
+                                <img src={style.imageUrl} className="w-12 h-12 rounded-xl object-cover shadow-sm flex-shrink-0" alt="" />
+                                <div className="flex-grow min-w-0">
+                                    <div className="flex justify-between items-center">
+                                    <p className={`font-bold text-sm truncate pr-2 ${isActive ? 'text-green-600 dark:text-green-400' : 'text-gray-900 dark:text-white'}`}>{style.title}</p>
+                                    {isActive && <span className="text-[10px] bg-green-100 dark:bg-green-900 text-green-700 dark:text-green-300 px-2 py-0.5 rounded-full font-bold uppercase tracking-tighter flex-shrink-0">Đang chọn</span>}
+                                    </div>
+                                    <p className="text-[10px] text-gray-400 line-clamp-1 mt-0.5">{style.description}</p>
                                 </div>
-                                <p className="text-[10px] text-gray-400 line-clamp-1 mt-0.5">{style.description}</p>
-                              </div>
-                            </div>
+                                </div>
+                            </Tooltip>
                           );
                         })
                       ) : (
