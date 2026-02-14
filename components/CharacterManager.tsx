@@ -148,7 +148,7 @@ Kịch bản: "${scriptText.substring(0, 3000)}"`;
             onClick={onAutoFillRows}
             className="flex items-center gap-2 text-sm font-bold py-2 px-4 rounded-lg bg-orange-50 text-orange-700 border border-orange-200 hover:bg-orange-100 dark:bg-orange-900/20 dark:text-orange-300 dark:border-orange-800 transition-all shadow-sm"
           >
-            🪄 Điền tự động
+            🪄 Tự động điền nhân vật vào cảnh
           </button>
         </div>
       </div>
