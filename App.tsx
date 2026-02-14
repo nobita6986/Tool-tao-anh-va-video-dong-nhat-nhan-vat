@@ -68,7 +68,6 @@ export default function App() {
   const [videoPromptNote, setVideoPromptNote] = useState('');
   const [isProcessingScript, setIsProcessingScript] = useState(false);
   const [selectedModel, setSelectedModel] = useState<GeminiModel>(() => {
-    // Chuyển mặc định sang flash để tránh lỗi 429
     return (localStorage.getItem('selected_gemini_model') as GeminiModel) || 'gemini-3-flash-preview';
   });
 
@@ -105,11 +104,15 @@ export default function App() {
   
   const toggleTheme = () => setTheme(prevTheme => prevTheme === 'dark' ? 'light' : 'dark');
 
-  // Hàm lấy instance AI có hỗ trợ xoay vòng Key
   const getAiInstance = useCallback((keyIndex = 0) => {
     const availableKeys = apiKeys.length > 0 ? apiKeys : [process.env.API_KEY || ''];
     const safeIndex = keyIndex % availableKeys.length;
     const key = availableKeys[safeIndex];
+    
+    // Mask key for logging safety
+    const maskedKey = key.length > 8 ? `${key.substring(0, 4)}...${key.substring(key.length - 4)}` : '***';
+    console.log(`[AI Engine] Sử dụng Key #${safeIndex + 1}: ${maskedKey}`);
+    
     return {
         ai: new GoogleGenAI({ apiKey: key }),
         keyCount: availableKeys.length,
@@ -186,7 +189,7 @@ export default function App() {
     const runProcessing = async (keyIdx = 0): Promise<void> => {
         try {
             const scriptText = await readTextFile(file);
-            const { ai, keyCount } = getAiInstance(keyIdx);
+            const { ai } = getAiInstance(keyIdx);
             
             const systemInstruction = `Bạn là một chuyên gia kịch bản. Chuyển kịch bản thành bảng phân cảnh 5 cột Markdown: STT, Kịch bản Anh, Kịch bản Việt, Tóm tắt, Prompt tiếng Anh chi tiết. Không thêm văn bản thừa.`;
 
@@ -216,10 +219,9 @@ export default function App() {
             });
             setTableData(newTableData);
         } catch (error: any) {
-            // Nếu lỗi 429 và còn Key khác, thử Key tiếp theo
             const { keyCount } = getAiInstance();
             if (error.message.includes('429') && keyIdx < keyCount - 1) {
-                console.warn(`Key ${keyIdx} hết hạn mức, đang thử Key ${keyIdx + 1}...`);
+                console.warn(`[AI Engine] Key #${keyIdx + 1} hết hạn mức, đang thử Key #${keyIdx + 2}...`);
                 return runProcessing(keyIdx + 1);
             }
             alert(`Lỗi xử lý kịch bản: ${error.message}`);
@@ -232,7 +234,7 @@ export default function App() {
   }, [characters, defaultCharacterIndex, getAiInstance, selectedModel]);
 
   const generateImage = useCallback(async (rowId: number, adjustments?: AdjustmentOptions, retryCount = 0, keyIdx = 0) => {
-    setTableData(prevData => prevData.map(r => r.id === rowId ? { ...r, isGenerating: true, error: null } : r));
+    setTableData(prevData => prevData.map(r => r.id === rowId ? { ...r, isGenerating: true, error: keyIdx > 0 ? `Đang thử lại với Key #${keyIdx + 1}...` : null } : r));
 
     try {
       const { tableData: currentTable, selectedStyle: currentStyle, characters: currentChars, defaultCharacterIndex: currentDef } = stateRef.current;
@@ -245,7 +247,7 @@ export default function App() {
         characters: currentChars, defaultCharacterIndex: currentDef, adjustments 
       });
       
-      const { ai, keyCount } = getAiInstance(keyIdx);
+      const { ai } = getAiInstance(keyIdx);
       const response = await ai.models.generateContent({ 
         model: IMAGE_GEN_MODEL, 
         contents: { parts: parts } 
@@ -267,20 +269,20 @@ export default function App() {
       const errorMessage = err.message || "Lỗi không xác định";
       const { keyCount } = getAiInstance();
       
-      // Xoay vòng Key nếu gặp lỗi 429
       if (errorMessage.includes("429")) {
           if (keyIdx < keyCount - 1) {
+              console.warn(`[Image Engine] Key #${keyIdx + 1} hit quota, rotating to Key #${keyIdx + 2}`);
               return generateImage(rowId, adjustments, retryCount, keyIdx + 1);
           } else if (retryCount < 3) {
-              const backoffTime = 5000 * (retryCount + 1);
-              setTableData(prev => prev.map(r => r.id === rowId ? { ...r, error: `Hết hạn mức toàn bộ Key, chờ ${backoffTime/1000}s...` } : r));
+              const backoffTime = 15000 * (retryCount + 1);
+              setTableData(prev => prev.map(r => r.id === rowId ? { ...r, error: `Hết hạn mức toàn bộ Key, chờ ${backoffTime/1000}s để thử lại đợt mới...` } : r));
               await delay(backoffTime);
-              return generateImage(rowId, adjustments, retryCount + 1, 0); // Quay lại key đầu tiên sau khi đợi
+              return generateImage(rowId, adjustments, retryCount + 1, 0); 
           }
       }
 
       let finalError = errorMessage;
-      if (finalError.includes("429")) finalError = "Hạn mức API đã hết trên tất cả các Key. Hãy nâng cấp hoặc đợi vài phút.";
+      if (finalError.includes("429")) finalError = "Hạn mức API đã hết trên tất cả các Key. Hãy kiểm tra gói cước hoặc thêm Key mới.";
       setTableData(prev => prev.map(r => r.id === rowId ? { ...r, error: `Lỗi: ${finalError}`, isGenerating: false } : r));
     }
   }, [getAiInstance]);
@@ -294,7 +296,8 @@ export default function App() {
 
     for (let i = 0; i < rowsToProcess.length; i++) {
         await generateImage(rowsToProcess[i].id);
-        await delay(3000); // Giảm delay vì đã có xoay vòng Key
+        // Tăng delay lên 15s để an toàn cho model tạo ảnh
+        await delay(15000 + Math.random() * 2000); 
     }
   }, [tableData, generateImage]);
 
@@ -306,7 +309,7 @@ export default function App() {
     if (!mainAsset) { handleUpdateRow({ ...row, error: "Cần có ảnh chính để tạo prompt video." }); return; }
     setTableData(prevData => prevData.map(r => r.id === rowId ? { ...r, isGeneratingPrompt: true, error: null, videoPrompt: '' } : r));
     try {
-        const { ai, keyCount } = getAiInstance(keyIdx);
+        const { ai } = getAiInstance(keyIdx);
         const parts = [{ inlineData: { data: mainAsset.split(',')[1], mimeType: 'image/png' } }, { text: `Từ kịch bản [${row.originalRow[2]}] hãy viết Prompt Video tiếng Anh dài 300 chữ mô tả chuyển động camera 8 giây. ${videoPromptNote}` }];
         const responseStream = await ai.models.generateContentStream({ model: selectedModel, contents: { parts } });
         for await (const chunk of responseStream) {
@@ -336,7 +339,7 @@ export default function App() {
     if (keyIdx === 0) setChatMessages(updatedMessages);
     setIsAiReplying(true);
     try {
-        const { ai, keyCount } = getAiInstance(keyIdx);
+        const { ai } = getAiInstance(keyIdx);
         const history = updatedMessages.slice(0, -1).map(msg => ({ role: msg.role, parts: [{ text: msg.content }] }));
         const chat = ai.chats.create({ model: selectedModel, history: history });
         const responseStream = await chat.sendMessageStream({ message: prompt });

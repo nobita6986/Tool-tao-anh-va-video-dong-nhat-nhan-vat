@@ -75,8 +75,6 @@ const CharacterSelector: React.FC<{
 };
 
 export const ResultRow: React.FC<ResultRowProps> = ({ rowData, characters, onUpdateRow, onGenerateImage, selectedStyle, onViewImage, onStartRemake, onOpenHistory, onSendToVideo, onGenerateVideoPrompt, defaultCharacterIndex }) => {
-  const [isVideoPromptExpanded, setIsVideoPromptExpanded] = useState(false);
-  
   const mainIndex = rowData.mainImageIndex > -1 ? rowData.mainImageIndex : (rowData.generatedImages.length > 0 ? rowData.generatedImages.length - 1 : -1);
   const mainAsset = mainIndex !== -1 ? rowData.generatedImages[mainIndex] : null;
 
@@ -106,6 +104,9 @@ export const ResultRow: React.FC<ResultRowProps> = ({ rowData, characters, onUpd
                 <div className="flex flex-col items-center gap-2 py-8">
                     <div className="spinner w-8 h-8"></div>
                     <span className="text-[10px] font-bold text-green-600 animate-pulse">ĐANG VẼ...</span>
+                    {rowData.error && rowData.error.includes('Key') && (
+                        <span className="text-[9px] text-orange-500 font-medium text-center leading-tight">{rowData.error}</span>
+                    )}
                 </div>
             ) : mainAsset ? (
                 <div className="space-y-2">
@@ -122,13 +123,18 @@ export const ResultRow: React.FC<ResultRowProps> = ({ rowData, characters, onUpd
                     </div>
                 </div>
             ) : (
-                <button 
-                    onClick={() => onGenerateImage(rowData.id)} 
-                    className="w-full aspect-video border-2 border-dashed border-gray-200 dark:border-green-900/30 rounded-lg flex flex-col items-center justify-center text-green-600 dark:text-green-400 hover:bg-green-50 dark:hover:bg-green-900/10 transition-colors group"
-                >
-                    <span className="text-xl group-hover:scale-125 transition-transform">🎨</span>
-                    <span className="text-[10px] font-bold mt-1">TẠO ẢNH</span>
-                </button>
+                <div className="flex flex-col gap-2">
+                    <button 
+                        onClick={() => onGenerateImage(rowData.id)} 
+                        className="w-full aspect-video border-2 border-dashed border-gray-200 dark:border-green-900/30 rounded-lg flex flex-col items-center justify-center text-green-600 dark:text-green-400 hover:bg-green-50 dark:hover:bg-green-900/10 transition-colors group"
+                    >
+                        <span className="text-xl group-hover:scale-125 transition-transform">🎨</span>
+                        <span className="text-[10px] font-bold mt-1">TẠO ẢNH</span>
+                    </button>
+                    {rowData.error && (
+                        <p className="text-[9px] text-red-500 font-medium text-center line-clamp-3 leading-tight px-1" title={rowData.error}>{rowData.error}</p>
+                    )}
+                </div>
             )}
         </div>
       </td>
