@@ -26,14 +26,14 @@ export const STYLES: Style[] = [
   {
     title: 'Người Que (Stickman)',
     description: 'Nghệ thuật người que tối giản nhưng cực kỳ điện ảnh và năng động.',
-    imageUrl: 'https://images.unsplash.com/photo-1554188248-986adbb73be4?auto=format&fit=crop&w=400&q=80',
+    imageUrl: 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?auto=format&fit=crop&w=400&q=80',
     tooltip: '', locked: false,
     promptTemplate: `Style: Cinematic Stickman art, thick black outlines on high contrast background, dynamic poses, expressive minimalist face. Context: [A]. [CHARACTER_STYLE]`
   },
   {
     title: 'Màu Nước (Watercolor)',
     description: 'Nét vẽ loang nghệ thuật, mộc mạc trên nền giấy vân canson.',
-    imageUrl: 'https://images.unsplash.com/photo-1541462608141-ad60397d446f?auto=format&fit=crop&w=400&q=80',
+    imageUrl: 'https://images.unsplash.com/photo-1579762792188-fc338100e9b8?auto=format&fit=crop&w=400&q=80',
     tooltip: '', locked: false,
     promptTemplate: `Style: Artistic Watercolor painting, bleeding colors, wet-on-wet technique, visible paper texture, messy ink splashes. Context: [A]. [CHARACTER_STYLE]`
   },
@@ -54,7 +54,7 @@ export const STYLES: Style[] = [
   {
     title: 'Đất Sét (Claymation)',
     description: 'Hoạt hình đất sét nặn thủ công, có dấu vân tay thực tế.',
-    imageUrl: 'https://images.unsplash.com/photo-1516062423079-7ca13cdc7f5a?auto=format&fit=crop&w=400&q=80',
+    imageUrl: 'https://images.unsplash.com/photo-1560421683-6856ea585c78?auto=format&fit=crop&w=400&q=80',
     tooltip: '', locked: false,
     promptTemplate: `Style: Claymation, stop-motion clay art, handmade texture with subtle fingerprint details, studio lighting. Context: [A]. [CHARACTER_STYLE]`
   },
@@ -82,7 +82,7 @@ export const STYLES: Style[] = [
   {
     title: 'Tranh Cắt Giấy (Paper)',
     description: 'Nghệ thuật xếp giấy nhiều lớp, tạo chiều sâu vật lý.',
-    imageUrl: 'https://images.unsplash.com/photo-1550100136-e0921017bd67?auto=format&fit=crop&w=400&q=80',
+    imageUrl: 'https://images.unsplash.com/photo-1506806732259-39c2d4ad68b9?auto=format&fit=crop&w=400&q=80',
     tooltip: '', locked: false,
     promptTemplate: `Style: Paper Cutout art, multi-layered paper stacks, realistic drop shadows, textured craft paper, diorama feel. Context: [A]. [CHARACTER_STYLE]`
   },
@@ -124,7 +124,7 @@ export const STYLES: Style[] = [
   {
     title: 'Huyền Ảo (Dark Fantasy)',
     description: 'Gothic, ma mị, lâu đài cổ và sương mù huyền bí.',
-    imageUrl: 'https://images.unsplash.com/photo-1501139083538-0139583c060f?auto=format&fit=crop&w=400&q=80',
+    imageUrl: 'https://images.unsplash.com/photo-1519074002996-309e52709a24?auto=format&fit=crop&w=400&q=80',
     tooltip: '', locked: false,
     promptTemplate: `Style: Dark Fantasy Gothic, misty graveyard atmosphere, haunting moonlight, intricate lace and iron details. Context: [A]. [CHARACTER_STYLE]`
   },
