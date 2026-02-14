@@ -1,7 +1,6 @@
 
-import React, { useState, ChangeEvent } from 'react';
+import React, { useState } from 'react';
 import { GoogleGenAI } from '@google/genai';
-import { readKeysFromExcel } from '../utils/fileUtils';
 import type { GeminiModel } from '../types';
 
 interface ApiKeyManagerProps {
@@ -16,9 +15,9 @@ interface ApiKeyManagerProps {
 type ValidationStatus = 'idle' | 'validating' | 'valid' | 'invalid';
 
 const MODELS: { value: GeminiModel; label: string }[] = [
-    { value: 'gemini-3-pro-preview', label: 'Gemini 3 Pro Preview (Tốt nhất)' },
-    { value: 'gemini-3-flash-preview', label: 'Gemini 3 Flash Preview (Nhanh)' },
-    { value: 'gemini-2.5-flash-lite-latest', label: 'Gemini 2.5 Flash Lite (Tiết kiệm)' },
+    { value: 'gemini-3-pro-preview', label: 'Gemini 3 Pro Preview (Mạnh nhất - Ưu tiên)' },
+    { value: 'gemini-3-flash-preview', label: 'Gemini 3 Flash Preview (Cân bằng & Nhanh)' },
+    { value: 'gemini-flash-lite-latest', label: 'Gemini Flash Lite (Tiết kiệm nhất)' },
 ];
 
 export const ApiKeyManager: React.FC<ApiKeyManagerProps> = ({ isOpen, onClose, apiKeys, setApiKeys, selectedModel, onSelectModel }) => {
@@ -31,6 +30,7 @@ export const ApiKeyManager: React.FC<ApiKeyManagerProps> = ({ isOpen, onClose, a
   const validateApiKey = async (key: string): Promise<boolean> => {
     try {
       const ai = new GoogleGenAI({ apiKey: key });
+      // Sử dụng model Flash để xác thực vì nó phổ biến và nhanh nhất
       await ai.models.generateContent({
         model: 'gemini-3-flash-preview',
         contents: 'hi',
@@ -73,22 +73,23 @@ export const ApiKeyManager: React.FC<ApiKeyManagerProps> = ({ isOpen, onClose, a
                 <select 
                     value={selectedModel}
                     onChange={(e) => onSelectModel(e.target.value as GeminiModel)}
-                    className="w-full bg-gray-50 dark:bg-[#020a06] border border-gray-300 dark:border-[#1f4d3a] text-gray-900 dark:text-gray-200 p-2 rounded-lg outline-none focus:ring-2 focus:ring-green-400"
+                    className="w-full bg-gray-50 dark:bg-[#020a06] border border-gray-300 dark:border-[#1f4d3a] text-gray-900 dark:text-gray-200 p-3 rounded-lg outline-none focus:ring-2 focus:ring-green-400 transition-all font-medium"
                 >
                     {MODELS.map(m => <option key={m.value} value={m.value}>{m.label}</option>)}
                 </select>
+                <p className="text-[10px] text-gray-500 mt-1 italic">* Lưu ý: Model 3 Pro yêu cầu Key có quyền truy cập Preview.</p>
             </div>
 
             <div className="border-t border-gray-200 dark:border-gray-700 pt-4">
                 <label className="block text-sm font-semibold mb-2">Danh sách API Key ({apiKeys.length})</label>
-                <div className="space-y-2 max-h-40 overflow-y-auto pr-2 mb-4">
+                <div className="space-y-2 max-h-40 overflow-y-auto pr-2 mb-4 scrollbar-thin">
                     {apiKeys.map((key, idx) => (
                         <div key={idx} className="flex items-center justify-between bg-gray-50 dark:bg-[#020a06] p-2 rounded border border-gray-200 dark:border-[#1f4d3a]">
-                            <span className="font-mono text-xs">{maskKey(key)}</span>
-                            <button onClick={() => setApiKeys(apiKeys.filter((_, i) => i !== idx))} className="text-red-500 text-xs font-bold hover:underline">Xóa</button>
+                            <span className="font-mono text-xs text-gray-600 dark:text-gray-400">{maskKey(key)}</span>
+                            <button onClick={() => setApiKeys(apiKeys.filter((_, i) => i !== idx))} className="text-red-500 text-xs font-bold hover:text-red-600 transition-colors">Xóa</button>
                         </div>
                     ))}
-                    {apiKeys.length === 0 && <p className="text-xs text-gray-500 text-center italic">Chưa có key nào. Ứng dụng sẽ dùng key mặc định.</p>}
+                    {apiKeys.length === 0 && <p className="text-xs text-gray-500 text-center italic py-4">Chưa có key nào. Ứng dụng sẽ dùng key mặc định hệ thống.</p>}
                 </div>
 
                 <div className="flex gap-2">
@@ -102,17 +103,17 @@ export const ApiKeyManager: React.FC<ApiKeyManagerProps> = ({ isOpen, onClose, a
                     <button 
                         onClick={handleAddKey}
                         disabled={validationStatus === 'validating' || !newKey.trim()}
-                        className="bg-green-600 text-white px-4 py-2 rounded-lg font-semibold hover:bg-green-500 disabled:opacity-50"
+                        className="bg-green-600 text-white px-6 py-2 rounded-lg font-semibold hover:bg-green-500 disabled:opacity-50 transition-all"
                     >
-                        {validationStatus === 'validating' ? '...' : 'Thêm'}
+                        {validationStatus === 'validating' ? 'Đang kiểm tra...' : 'Thêm Key'}
                     </button>
                 </div>
-                {validationMessage && <p className="text-[10px] mt-1 text-red-400">{validationMessage}</p>}
+                {validationMessage && <p className="text-[10px] mt-1 text-red-400 font-medium">{validationMessage}</p>}
             </div>
         </div>
 
-        <div className="text-center">
-            <button onClick={onClose} className="bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-white px-6 py-2 rounded-lg font-semibold">Đóng</button>
+        <div className="text-center pt-4">
+            <button onClick={onClose} className="bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-white px-8 py-2.5 rounded-lg font-bold hover:bg-orange-500 hover:text-white transition-all">Xong</button>
         </div>
       </div>
     </div>

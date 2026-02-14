@@ -208,7 +208,7 @@ Kịch bản thô: "${scriptText}"`;
       setTableData(newTableData);
       setHasUnsavedChanges(true);
     } catch (error: any) {
-      alert(`Lỗi xử lý kịch bản: ${error.message}`);
+      alert(`Lỗi xử lý kịch bản: ${error.message}. Thử đổi sang model Flash để ổn định hơn.`);
     } finally {
       setIsProcessingScript(false);
     }
@@ -222,6 +222,7 @@ Kịch bản thô: "${scriptText}"`;
     try {
       const { prompt, parts } = getPromptAndPartsForRow({ row, rowIndex, tableData, selectedStyle, characters, defaultCharacterIndex, adjustments });
       const { ai, rotate } = getAiInstance();
+      // Luôn dùng 2.5 Flash Image để vẽ ảnh (đây là model vẽ ảnh duy nhất ổn định hiện tại)
       const response = await ai.models.generateContent({ model: 'gemini-2.5-flash-image', contents: { parts: parts } });
       const generatedBase64 = response.candidates?.[0]?.content?.parts?.find(p => p.inlineData)?.inlineData?.data;
       if (generatedBase64) {
@@ -231,7 +232,7 @@ Kịch bản thô: "${scriptText}"`;
         handleUpdateRow({ ...latestRowState, generatedImages: newImages, mainImageIndex: newImages.length - 1, isGenerating: false, error: null, lastUsedPrompt: prompt });
       } else throw new Error("No image generated.");
     } catch (err: any) {
-      handleUpdateRow({ ...tableData.find(r => r.id === rowId)!, error: `Lỗi: ${err.message}`, isGenerating: false });
+      handleUpdateRow({ ...tableData.find(r => r.id === rowId)!, error: `Lỗi vẽ ảnh: ${err.message}`, isGenerating: false });
       getAiInstance().rotate();
     }
   }, [characters, selectedStyle, tableData, handleUpdateRow, defaultCharacterIndex, getAiInstance]);
@@ -246,12 +247,13 @@ Kịch bản thô: "${scriptText}"`;
     try {
         const { ai, rotate } = getAiInstance();
         const parts = [{ inlineData: { data: mainAsset.split(',')[1], mimeType: mainAsset.startsWith('data:image/jpeg') ? 'image/jpeg' : 'image/png' } }, { text: `Từ kịch bản [${row.originalRow[2]}] hãy viết Prompt Video tiếng Anh dài 300 chữ theo cấu trúc mô tả chi tiết 8 giây camera move. ${videoPromptNote}` }];
+        // Dùng model người dùng đã chọn để viết prompt video
         const responseStream = await ai.models.generateContentStream({ model: selectedModel, contents: { parts } });
         for await (const chunk of responseStream) {
             setTableData(prevData => prevData.map(r => r.id === rowId ? { ...r, videoPrompt: (r.videoPrompt || '') + (chunk.text || '') } : r));
         }
     } catch (err: any) {
-        handleUpdateRow({ ...tableData.find(r => r.id === rowId)!, error: `Lỗi: ${err.message}` });
+        handleUpdateRow({ ...tableData.find(r => r.id === rowId)!, error: `Lỗi viết prompt video: ${err.message}` });
         getAiInstance().rotate();
     } finally { setTableData(prevData => prevData.map(r => r.id === rowId ? { ...r, isGeneratingPrompt: false } : r)); }
   }, [tableData, handleUpdateRow, videoPromptNote, getAiInstance, selectedModel]);
@@ -305,16 +307,16 @@ Kịch bản thô: "${scriptText}"`;
           <div className="flex flex-wrap justify-between items-center gap-x-6 gap-y-3">
             <h1 onClick={handleResetApp} className="text-2xl font-bold uppercase tracking-wider gradient-text cursor-pointer">Pro Studio</h1>
             <div className="flex items-center flex-wrap justify-end gap-2">
-               <button onClick={() => setIsApiKeyManagerOpen(true)} className="flex-shrink-0 h-10 font-semibold py-2 px-4 rounded-lg bg-green-100 text-green-700 dark:bg-[#0f3a29] dark:text-green-300 border border-green-700 hover:bg-orange-100 hover:text-orange-700 transition-colors whitespace-nowrap">
-                Quản lý API
+               <button onClick={() => setIsApiKeyManagerOpen(true)} className="flex-shrink-0 h-10 font-bold py-2 px-4 rounded-lg bg-green-100 text-green-700 dark:bg-[#0f3a29] dark:text-green-300 border border-green-700 hover:bg-orange-100 hover:text-orange-700 transition-colors whitespace-nowrap shadow-sm">
+                ⚙️ API & Model
               </button>
-               <button onClick={() => createProjectAssetsZip(tableData, `images-assets.zip`)} className="flex-shrink-0 h-10 font-semibold py-2 px-4 rounded-lg bg-gray-200 dark:bg-[#0f3a29] text-gray-800 dark:text-green-300 border border-gray-300 dark:border-green-700 hover:bg-orange-100 hover:text-orange-700 transition-colors whitespace-nowrap">
+               <button onClick={() => createProjectAssetsZip(tableData, `images-assets.zip`)} className="flex-shrink-0 h-10 font-semibold py-2 px-4 rounded-lg bg-gray-200 dark:bg-[#0f3a29] text-gray-800 dark:text-green-300 border border-gray-300 dark:border-green-700 hover:bg-orange-100 hover:text-orange-700 transition-colors whitespace-nowrap shadow-sm">
                 Tải toàn bộ ảnh
               </button>
-              <button onClick={() => exportPromptsToTxt(tableData, `Scripts.txt`)} className="flex-shrink-0 h-10 font-semibold py-2 px-4 rounded-lg bg-gray-200 dark:bg-[#0f3a29] text-gray-800 dark:text-green-300 border border-gray-300 dark:border-green-700 hover:bg-orange-100 hover:text-orange-700 transition-colors whitespace-nowrap">
+              <button onClick={() => exportPromptsToTxt(tableData, `Scripts.txt`)} className="flex-shrink-0 h-10 font-semibold py-2 px-4 rounded-lg bg-gray-200 dark:bg-[#0f3a29] text-gray-800 dark:text-green-300 border border-gray-300 dark:border-green-700 hover:bg-orange-100 hover:text-orange-700 transition-colors whitespace-nowrap shadow-sm">
                 Xuất Prompt
               </button>
-               <button onClick={toggleTheme} className="flex-shrink-0 h-10 w-10 flex items-center justify-center rounded-lg bg-gray-200 dark:bg-[#0f3a29] text-gray-800 dark:text-green-300 border border-gray-300 dark:border-green-700 hover:bg-orange-100 hover:text-orange-700 transition-colors">
+               <button onClick={toggleTheme} className="flex-shrink-0 h-10 w-10 flex items-center justify-center rounded-lg bg-gray-200 dark:bg-[#0f3a29] text-gray-800 dark:text-green-300 border border-gray-300 dark:border-green-700 hover:bg-orange-100 hover:text-orange-700 transition-colors shadow-sm">
                  {theme === 'dark' ? <SunIcon className="w-6 h-6"/> : <MoonIcon className="w-6 h-6"/>}
               </button>
             </div>

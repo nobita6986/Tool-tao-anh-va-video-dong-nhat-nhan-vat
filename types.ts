@@ -7,12 +7,11 @@ export interface Style {
   tooltip: string;
   locked: boolean;
   promptTemplate?: string;
-  imageUrl?: string; // Changed from imageUrls array to single string
+  imageUrl?: string;
 }
 
 export interface Character {
   name:string;
-  // Store images as base64 data URLs
   images: string[];
   stylePrompt: string;
 }
@@ -46,4 +45,5 @@ export interface ChatMessage {
   content: string;
 }
 
-export type GeminiModel = 'gemini-3-pro-preview' | 'gemini-3-flash-preview' | 'gemini-2.5-flash-lite-latest';
+// Cập nhật lại các Model ID chuẩn
+export type GeminiModel = 'gemini-3-pro-preview' | 'gemini-3-flash-preview' | 'gemini-flash-lite-latest';
