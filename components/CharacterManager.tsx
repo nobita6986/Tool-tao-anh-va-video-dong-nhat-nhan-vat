@@ -45,7 +45,7 @@ export const CharacterManager: React.FC<CharacterManagerProps> = ({
   };
 
   const addCharacterSlot = () => {
-    setCharacters([...characters, { name: '', images: [], stylePrompt: '' }]);
+    setCharacters([{ name: '', images: [], stylePrompt: '' }, ...characters]);
   };
 
   const removeCharacterSlot = (index: number) => {
@@ -124,9 +124,15 @@ Kịch bản: "${scriptText.substring(0, 3000)}"`;
         </div>
         <div className="flex gap-2" onClick={(e) => e.stopPropagation()}>
           <button 
+            onClick={addCharacterSlot}
+            className="text-sm font-bold py-2 px-4 rounded-lg bg-green-600 text-white hover:bg-green-700 shadow-md transition-all active:scale-95"
+          >
+            + Thêm nhân vật
+          </button>
+          <button 
             onClick={detectCharacters}
             disabled={isDetecting}
-            className="flex items-center gap-2 text-sm font-bold py-2 px-4 rounded-lg bg-green-50 text-green-700 border border-green-200 hover:bg-orange-100 hover:text-orange-700 hover:border-orange-300 dark:bg-green-900/20 dark:text-green-300 dark:border-green-800 transition-all disabled:opacity-50 shadow-sm"
+            className="flex items-center gap-2 text-sm font-bold py-2 px-4 rounded-lg bg-green-50 text-green-700 border border-green-200 hover:bg-green-100 dark:bg-green-900/20 dark:text-green-300 dark:border-green-800 transition-all disabled:opacity-50 shadow-sm"
           >
             {isDetecting ? <div className="spinner w-4 h-4" /> : '🔍'} Tự động lấy nhân vật
           </button>
@@ -135,12 +141,6 @@ Kịch bản: "${scriptText.substring(0, 3000)}"`;
             className="flex items-center gap-2 text-sm font-bold py-2 px-4 rounded-lg bg-orange-50 text-orange-700 border border-orange-200 hover:bg-orange-100 dark:bg-orange-900/20 dark:text-orange-300 dark:border-orange-800 transition-all shadow-sm"
           >
             🪄 Tự động điền nhân vật
-          </button>
-          <button 
-            onClick={addCharacterSlot}
-            className="text-sm font-bold py-2 px-4 rounded-lg bg-green-600 text-white hover:bg-orange-500 shadow-md transition-all active:scale-95"
-          >
-            + Thêm nhân vật
           </button>
         </div>
       </div>

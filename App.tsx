@@ -55,6 +55,8 @@ const getCharacterIndicesFromStt = (stt: string | number, characters: Character[
     return selectedCharacterIndices;
 }
 
+const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
+
 export default function App() {
   const [characters, setCharacters] = useState<Character[]>([{ name: '', images: [], stylePrompt: '' }]);
   const [selectedStyle, setSelectedStyle] = useState<Style | null>(null);
@@ -127,7 +129,6 @@ export default function App() {
   const handleUpdateRow = useCallback((updatedRow: TableRowData) => { setTableData(prevData => prevData.map(row => (row.id === updatedRow.id ? updatedRow : row))); setHasUnsavedChanges(true); }, []);
 
   const handleAutoFillCharacters = useCallback(() => {
-    let fillCount = 0;
     const definedCharacters = characters
         .map((c, i) => ({ name: c.name.trim().toLowerCase(), index: i }))
         .filter(c => c.name.length > 0);
@@ -137,31 +138,34 @@ export default function App() {
         return;
     }
 
-    setTableData(prevData => {
-        const newData = prevData.map(row => {
-            const vietnameseText = String(row.originalRow[2] || "").toLowerCase();
-            const originalText = String(row.originalRow[1] || "").toLowerCase();
-            const combinedText = `${originalText} ${vietnameseText}`;
+    let fillCount = 0;
+    const updatedTableData = tableData.map(row => {
+        const vietnameseText = String(row.originalRow[2] || "").toLowerCase();
+        const originalText = String(row.originalRow[1] || "").toLowerCase();
+        const combinedText = ` ${originalText} ${vietnameseText} `;
 
-            const detected = definedCharacters
-                .filter(c => combinedText.includes(c.name))
-                .map(c => c.index);
-            
-            if (detected.length > 0) {
-                fillCount++;
-                return { ...row, selectedCharacterIndices: detected };
-            }
-            return row;
-        });
-
-        if (fillCount === 0) {
-            alert("Không tìm thấy tên nhân vật nào khớp trong kịch bản. Hãy đảm bảo tên nhân vật trong 'Quản lý nhân vật' xuất hiện chính xác trong kịch bản.");
-        } else {
-            alert(`Thành công! Đã tự động điền nhân vật cho ${fillCount} phân cảnh.`);
+        const detected = definedCharacters
+            .filter(c => {
+                // Sử dụng regex để tìm chính xác từ (không khớp "Bells" nếu tên là "Bella")
+                const regex = new RegExp(`\\b${c.name}\\b`, 'i');
+                return regex.test(combinedText);
+            })
+            .map(c => c.index);
+        
+        if (detected.length > 0) {
+            fillCount++;
+            return { ...row, selectedCharacterIndices: detected };
         }
-        return newData;
+        return row;
     });
-  }, [characters]);
+
+    if (fillCount === 0) {
+        alert("Không tìm thấy tên nhân vật nào khớp trong kịch bản. Lưu ý: Hệ thống tìm kiếm theo tên chính xác bạn đã đặt.");
+    } else {
+        setTableData(updatedTableData);
+        alert(`Thành công! Đã cập nhật nhân vật cho ${fillCount} phân cảnh.`);
+    }
+  }, [characters, tableData]);
 
   const handleDocUpload = useCallback(async (file: File) => {
     setIsProcessingScript(true);
@@ -215,27 +219,56 @@ Kịch bản thô: "${scriptText}"`;
   }, [characters, defaultCharacterIndex, getAiInstance, selectedModel]);
 
   const generateImage = useCallback(async (rowId: number, adjustments?: AdjustmentOptions) => {
-    const rowIndex = tableData.findIndex(row => row.id === rowId);
-    if (rowIndex === -1 || !selectedStyle) return;
-    const row = tableData[rowIndex];
-    handleUpdateRow({ ...row, isGenerating: true, error: null });
+    // Luôn lấy state mới nhất từ tableData để xử lý
+    setTableData(prevData => {
+        const rowIndex = prevData.findIndex(row => row.id === rowId);
+        if (rowIndex === -1) return prevData;
+        const row = prevData[rowIndex];
+        return prevData.map(r => r.id === rowId ? { ...r, isGenerating: true, error: null } : r);
+    });
+
     try {
+      // Vì generateImage là async, chúng ta cần tìm row lại trong tableData hiện tại
+      const row = tableData.find(r => r.id === rowId);
+      if (!row || !selectedStyle) return;
+
+      const rowIndex = tableData.findIndex(r => r.id === rowId);
       const { prompt, parts } = getPromptAndPartsForRow({ row, rowIndex, tableData, selectedStyle, characters, defaultCharacterIndex, adjustments });
       const { ai, rotate } = getAiInstance();
-      // Luôn dùng 2.5 Flash Image để vẽ ảnh (đây là model vẽ ảnh duy nhất ổn định hiện tại)
+      
       const response = await ai.models.generateContent({ model: 'gemini-2.5-flash-image', contents: { parts: parts } });
       const generatedBase64 = response.candidates?.[0]?.content?.parts?.find(p => p.inlineData)?.inlineData?.data;
+      
       if (generatedBase64) {
         const imageUrl = `data:image/png;base64,${generatedBase64}`;
-        const latestRowState = tableData.find(r => r.id === rowId)!;
-        const newImages = [...latestRowState.generatedImages, imageUrl];
-        handleUpdateRow({ ...latestRowState, generatedImages: newImages, mainImageIndex: newImages.length - 1, isGenerating: false, error: null, lastUsedPrompt: prompt });
+        setTableData(prev => prev.map(r => {
+            if (r.id === rowId) {
+                const newImages = [...r.generatedImages, imageUrl];
+                return { ...r, generatedImages: newImages, mainImageIndex: newImages.length - 1, isGenerating: false, error: null, lastUsedPrompt: prompt };
+            }
+            return r;
+        }));
       } else throw new Error("No image generated.");
     } catch (err: any) {
-      handleUpdateRow({ ...tableData.find(r => r.id === rowId)!, error: `Lỗi vẽ ảnh: ${err.message}`, isGenerating: false });
+      setTableData(prev => prev.map(r => r.id === rowId ? { ...r, error: `Lỗi: ${err.message}`, isGenerating: false } : r));
       getAiInstance().rotate();
     }
-  }, [characters, selectedStyle, tableData, handleUpdateRow, defaultCharacterIndex, getAiInstance]);
+  }, [characters, selectedStyle, tableData, defaultCharacterIndex, getAiInstance]);
+
+  const handleGenerateAllImages = useCallback(async () => {
+    const rowsToProcess = tableData.filter(r => r.generatedImages.length === 0 && !r.isGenerating);
+    if (rowsToProcess.length === 0) {
+        alert("Tất cả các dòng đều đã có ảnh hoặc đang được tạo.");
+        return;
+    }
+
+    // Chạy tuần tự để tránh lỗi 429 Too Many Requests
+    for (let i = 0; i < rowsToProcess.length; i++) {
+        await generateImage(rowsToProcess[i].id);
+        // Nghỉ một chút giữa các yêu cầu (500ms - 1000ms là an toàn cho hầu hết API keys)
+        await delay(800); 
+    }
+  }, [tableData, generateImage]);
 
   const generateVideoPromptForRow = useCallback(async (rowId: number) => {
     const rowIndex = tableData.findIndex(row => row.id === rowId);
@@ -247,7 +280,6 @@ Kịch bản thô: "${scriptText}"`;
     try {
         const { ai, rotate } = getAiInstance();
         const parts = [{ inlineData: { data: mainAsset.split(',')[1], mimeType: mainAsset.startsWith('data:image/jpeg') ? 'image/jpeg' : 'image/png' } }, { text: `Từ kịch bản [${row.originalRow[2]}] hãy viết Prompt Video tiếng Anh dài 300 chữ theo cấu trúc mô tả chi tiết 8 giây camera move. ${videoPromptNote}` }];
-        // Dùng model người dùng đã chọn để viết prompt video
         const responseStream = await ai.models.generateContentStream({ model: selectedModel, contents: { parts } });
         for await (const chunk of responseStream) {
             setTableData(prevData => prevData.map(r => r.id === rowId ? { ...r, videoPrompt: (r.videoPrompt || '') + (chunk.text || '') } : r));
@@ -339,7 +371,7 @@ Kịch bản thô: "${scriptText}"`;
               selectedModel={selectedModel}
               onAutoFillRows={handleAutoFillCharacters}
             />
-            <ResultsView selectedStyle={selectedStyle} tableData={tableData} characters={characters} defaultCharacterIndex={defaultCharacterIndex} onBack={handleBackToStyles} onDocUpload={handleDocUpload} onUpdateRow={handleUpdateRow} onGenerateImage={generateImage} onGenerateAllImages={() => tableData.forEach(r => generateImage(r.id))} onGenerateVideoPrompt={generateVideoPromptForRow} onGenerateAllVideoPrompts={() => tableData.forEach(r => generateVideoPromptForRow(r.id))} onDownloadAll={() => createProjectAssetsZip(tableData, `images_assets.zip`)} onViewImage={setViewingImage} onStartRemake={setRemakingRow} onOpenHistory={setHistoryRow} onSendToVideo={(id) => generateVideoPromptForRow(id)} isProcessing={isProcessingScript} />
+            <ResultsView selectedStyle={selectedStyle} tableData={tableData} characters={characters} defaultCharacterIndex={defaultCharacterIndex} onBack={handleBackToStyles} onDocUpload={handleDocUpload} onUpdateRow={handleUpdateRow} onGenerateImage={generateImage} onGenerateAllImages={handleGenerateAllImages} onGenerateVideoPrompt={generateVideoPromptForRow} onGenerateAllVideoPrompts={() => tableData.forEach(r => generateVideoPromptForRow(r.id))} onDownloadAll={() => createProjectAssetsZip(tableData, `images_assets.zip`)} onViewImage={setViewingImage} onStartRemake={setRemakingRow} onOpenHistory={setHistoryRow} onSendToVideo={(id) => generateVideoPromptForRow(id)} isProcessing={isProcessingScript} />
           </div>
         )}
        </FileDropzone>
