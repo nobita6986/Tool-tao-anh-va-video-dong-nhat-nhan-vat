@@ -24,8 +24,11 @@ interface ResultsTableProps {
 const Tooltip: React.FC<{ text: string }> = ({ text }) => (
     <div className="relative flex items-center group">
         <InfoIcon className="w-4 h-4 ml-1 text-gray-400 dark:text-gray-500 cursor-pointer" />
-        <div className="absolute bottom-full mb-2 w-64 p-2 bg-gray-800 text-white text-xs rounded-lg opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-10">
+        {/* Changed from bottom-full to top-full and increased z-index */}
+        <div className="absolute top-full left-1/2 -translate-x-1/2 mt-2 w-64 p-3 bg-gray-900 text-white text-xs rounded-lg opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-[60] shadow-xl border border-gray-700">
             {text}
+            {/* Added a small arrow pointing up */}
+            <div className="absolute bottom-full left-1/2 -translate-x-1/2 border-8 border-transparent border-b-gray-900"></div>
         </div>
     </div>
 );
@@ -47,13 +50,13 @@ export const ResultsTable: React.FC<ResultsTableProps> = ({
   defaultCharacterIndex 
 }) => {
   const headers = [
-    { text: "STT", tooltip: "Số thứ tự phân cảnh." },
-    { text: "Ngôn ngữ gốc", tooltip: "Kịch bản gốc (tiếng Anh/Đức...)." },
-    { text: "Tiếng Việt", tooltip: "Bản dịch tiếng Việt." },
-    { text: "Nhân vật", tooltip: "Gán nhân vật cho cảnh này." },
-    { text: "Prompt bối cảnh", tooltip: "Mô tả chi tiết bối cảnh để AI vẽ ảnh." },
-    { text: "Image", tooltip: "Kết quả hình ảnh tạo ra." },
-    { text: "Prompt video", tooltip: "Câu lệnh kỹ thuật để tạo phim." },
+    { text: "STT", tooltip: "Số thứ tự phân cảnh. Dùng để định danh và gán nhân vật tự động." },
+    { text: "Ngôn ngữ gốc", tooltip: "Nội dung kịch bản gốc dùng để AI hiểu sâu về bối cảnh." },
+    { text: "Tiếng Việt", tooltip: "Bản dịch tiếng Việt dùng để người dùng kiểm soát nội dung." },
+    { text: "Nhân vật", tooltip: "Danh sách nhân vật xuất hiện trong cảnh này. Ảnh tham chiếu sẽ được gửi kèm prompt." },
+    { text: "Prompt bối cảnh", tooltip: "Mô tả chi tiết môi trường, ánh sáng, hành động cho AI vẽ ảnh." },
+    { text: "Image", tooltip: "Kết quả hình ảnh từ AI. Nhấn vào ảnh để xem toàn màn hình." },
+    { text: "Prompt video", tooltip: "Câu lệnh điều khiển camera và chuyển động được AI phân tích từ hình ảnh." },
   ];
 
   return (
@@ -68,7 +71,7 @@ export const ResultsTable: React.FC<ResultsTableProps> = ({
                     >
                         Tạo ảnh hàng loạt
                     </button>
-                    <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 hidden group-hover:block w-48 p-2 bg-gray-900 text-white text-[10px] rounded-lg shadow-xl z-20 text-center border border-gray-700">
+                    <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 hidden group-hover:block w-48 p-2 bg-gray-900 text-white text-[10px] rounded-lg shadow-xl z-[60] text-center border border-gray-700">
                         Kích hoạt vẽ AI cho tất cả các phân cảnh chưa có ảnh cùng lúc.
                         <div className="absolute top-full left-1/2 -translate-x-1/2 border-8 border-transparent border-t-gray-900"></div>
                     </div>
@@ -81,7 +84,7 @@ export const ResultsTable: React.FC<ResultsTableProps> = ({
                     >
                         Tạo tất cả prompt video
                     </button>
-                    <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 hidden group-hover:block w-48 p-2 bg-gray-900 text-white text-[10px] rounded-lg shadow-xl z-20 text-center border border-gray-700">
+                    <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 hidden group-hover:block w-48 p-2 bg-gray-900 text-white text-[10px] rounded-lg shadow-xl z-[60] text-center border border-gray-700">
                         AI sẽ đọc từng ảnh đã vẽ để viết câu lệnh chuyển động camera 8 giây.
                         <div className="absolute top-full left-1/2 -translate-x-1/2 border-8 border-transparent border-t-gray-900"></div>
                     </div>
@@ -93,7 +96,7 @@ export const ResultsTable: React.FC<ResultsTableProps> = ({
           <thead>
             <tr className="bg-gray-50 dark:bg-[#020a06] border-b border-gray-200 dark:border-[#1f4d3a]">
               {headers.map(h => 
-                <th key={h.text} className="p-4 text-left text-gray-500 dark:text-gray-400 font-black uppercase tracking-widest text-[10px]">
+                <th key={h.text} className="p-4 text-left text-gray-500 dark:text-gray-400 font-black uppercase tracking-widest text-[10px] relative">
                     <div className="flex items-center">
                         {h.text}
                         {h.tooltip && <Tooltip text={h.tooltip} />}

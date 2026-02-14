@@ -124,7 +124,7 @@ export const STYLES: Style[] = [
   {
     title: 'Huyền Ảo (Dark Fantasy)',
     description: 'Gothic, ma mị, lâu đài cổ và sương mù huyền bí.',
-    imageUrl: 'https://images.unsplash.com/photo-1518709268805-4e9042af9f23?auto=format&fit=crop&w=400&q=80',
+    imageUrl: 'https://images.unsplash.com/photo-1519074002996-309e52709a24?auto=format&fit=crop&w=400&q=80',
     tooltip: '', locked: false,
     promptTemplate: `Style: Dark Fantasy Gothic, misty graveyard atmosphere, haunting moonlight, intricate lace and iron details. Context: [A]. [CHARACTER_STYLE]`
   },

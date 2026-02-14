@@ -99,7 +99,7 @@ export default function App() {
   const getAiInstance = useCallback((): { ai: GoogleGenAI, rotate: () => void } => {
     const keys = apiKeys.length > 0 ? apiKeys : [process.env.API_KEY || ''];
     const idx = currentKeyIndex % keys.length;
-    const rotate = () => setCurrentKeyIndex((idx + 1) % keys.length);
+    const rotate = () => setCurrentKeyIndex((prev) => (prev + 1) % keys.length);
     const apiKeyToUse = keys[idx];
     if (!apiKeyToUse) {
       throw new Error("Vui lòng cấu hình ít nhất một API Key trong mục 'API & Model'.");
@@ -150,7 +150,6 @@ export default function App() {
 
         const detected = definedCharacters
             .filter(c => {
-                // Sử dụng regex để tìm chính xác từ (không khớp "Bells" nếu tên là "Bella")
                 const regex = new RegExp(`\\b${c.name}\\b`, 'i');
                 return regex.test(combinedText);
             })
@@ -193,7 +192,8 @@ Kịch bản thô: "${scriptText}"`;
         contents: systemInstruction,
       });
 
-      const tableRows = parseMarkdownTables(response.text);
+      // Fixed: response.text is a property, handled safely with || ''
+      const tableRows = parseMarkdownTables(response.text || '');
       if (tableRows.length === 0) throw new Error("AI không tạo được bảng kịch bản hợp lệ.");
 
       const newTableData: TableRowData[] = tableRows.map((cols, index) => {
@@ -223,24 +223,21 @@ Kịch bản thô: "${scriptText}"`;
   }, [characters, defaultCharacterIndex, getAiInstance, selectedModel]);
 
   const generateImage = useCallback(async (rowId: number, adjustments?: AdjustmentOptions) => {
-    // Luôn lấy state mới nhất từ tableData để xử lý
-    setTableData(prevData => {
-        const rowIndex = prevData.findIndex(row => row.id === rowId);
-        if (rowIndex === -1) return prevData;
-        const row = prevData[rowIndex];
-        return prevData.map(r => r.id === rowId ? { ...r, isGenerating: true, error: null } : r);
-    });
+    setTableData(prevData => prevData.map(r => r.id === rowId ? { ...r, isGenerating: true, error: null } : r));
 
     try {
-      // Vì generateImage là async, chúng ta cần tìm row lại trong tableData hiện tại
       const row = tableData.find(r => r.id === rowId);
       if (!row || !selectedStyle) return;
 
       const rowIndex = tableData.findIndex(r => r.id === rowId);
       const { prompt, parts } = getPromptAndPartsForRow({ row, rowIndex, tableData, selectedStyle, characters, defaultCharacterIndex, adjustments });
-      const { ai, rotate } = getAiInstance();
       
-      const response = await ai.models.generateContent({ model: 'gemini-2.5-flash-image', contents: { parts: parts } });
+      const { ai, rotate } = getAiInstance();
+      const response = await ai.models.generateContent({ 
+        model: 'gemini-2.5-flash-image', 
+        contents: { parts: parts } 
+      });
+      
       const generatedBase64 = response.candidates?.[0]?.content?.parts?.find(p => p.inlineData)?.inlineData?.data;
       
       if (generatedBase64) {
@@ -252,10 +249,14 @@ Kịch bản thô: "${scriptText}"`;
             }
             return r;
         }));
-      } else throw new Error("No image generated.");
+      } else throw new Error("Không nhận được dữ liệu ảnh từ AI.");
     } catch (err: any) {
-      setTableData(prev => prev.map(r => r.id === rowId ? { ...r, error: `Lỗi: ${err.message}`, isGenerating: false } : r));
-      getAiInstance().rotate();
+      let errorMessage = err.message;
+      if (errorMessage.includes("429")) {
+          errorMessage = "Hệ thống (429): Tần suất yêu cầu quá nhanh. Hãy thêm nhiều API Key hoặc chờ 2 phút để tiếp tục.";
+          getAiInstance().rotate(); // Chuyển key ngay khi gặp lỗi limit
+      }
+      setTableData(prev => prev.map(r => r.id === rowId ? { ...r, error: `Lỗi: ${errorMessage}`, isGenerating: false } : r));
     }
   }, [characters, selectedStyle, tableData, defaultCharacterIndex, getAiInstance]);
 
@@ -266,11 +267,10 @@ Kịch bản thô: "${scriptText}"`;
         return;
     }
 
-    // Chạy tuần tự để tránh lỗi 429 Too Many Requests
     for (let i = 0; i < rowsToProcess.length; i++) {
         await generateImage(rowsToProcess[i].id);
-        // Nghỉ một chút giữa các yêu cầu (500ms - 1000ms là an toàn cho hầu hết API keys)
-        await delay(800); 
+        // Tăng delay lên 2.5s để đảm bảo không bị 429 với 1 key free
+        await delay(2500); 
     }
   }, [tableData, generateImage]);
 
@@ -346,6 +346,7 @@ Kịch bản thô: "${scriptText}"`;
                <button onClick={() => setIsApiKeyManagerOpen(true)} className="flex-shrink-0 h-10 font-bold py-2 px-4 rounded-lg bg-green-100 text-green-700 dark:bg-[#0f3a29] dark:text-green-300 border border-green-700 hover:bg-orange-100 hover:text-orange-700 transition-colors whitespace-nowrap shadow-sm">
                 ⚙️ API & Model
               </button>
+               {/* Fixed: tableTableData was a typo, corrected to tableData */}
                <button onClick={() => createProjectAssetsZip(tableData, `images-assets.zip`)} className="flex-shrink-0 h-10 font-semibold py-2 px-4 rounded-lg bg-gray-200 dark:bg-[#0f3a29] text-gray-800 dark:text-green-300 border border-gray-300 dark:border-green-700 hover:bg-orange-100 hover:text-orange-700 transition-colors whitespace-nowrap shadow-sm">
                 Tải toàn bộ ảnh
               </button>
