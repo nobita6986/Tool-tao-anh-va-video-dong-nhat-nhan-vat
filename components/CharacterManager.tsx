@@ -15,6 +15,7 @@ interface CharacterManagerProps {
   tableData: TableRowData[];
   selectedModel: GeminiModel;
   onAutoFillRows: () => void;
+  getAiInstance: () => { ai: GoogleGenAI, rotate: () => void };
 }
 
 export const CharacterManager: React.FC<CharacterManagerProps> = ({ 
@@ -26,7 +27,8 @@ export const CharacterManager: React.FC<CharacterManagerProps> = ({
   onVideoPromptNoteChange,
   tableData,
   selectedModel,
-  onAutoFillRows
+  onAutoFillRows,
+  getAiInstance
 }) => {
   const [isDetecting, setIsDetecting] = useState(false);
   const [isExpanded, setIsExpanded] = useState(false);
@@ -64,12 +66,12 @@ export const CharacterManager: React.FC<CharacterManagerProps> = ({
     setIsDetecting(true);
     try {
       const scriptText = tableData.map(r => r.originalRow[2]).join(' ');
-      const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+      const { ai, rotate } = getAiInstance();
       const prompt = `Phân tích kịch bản sau và liệt kê danh sách các nhân vật chính (chỉ lấy tên hoặc danh xưng ngắn gọn, ví dụ: "Sara", "Người chồng", "Ông già"). Trả về danh sách phân tách bằng dấu phẩy. 
 Kịch bản: "${scriptText.substring(0, 3000)}"`;
       
       const response = await ai.models.generateContent({
-        model: 'gemini-3-flash-preview',
+        model: selectedModel.includes('pro') ? 'gemini-3-pro-preview' : 'gemini-3-flash-preview',
         contents: prompt,
       });
 

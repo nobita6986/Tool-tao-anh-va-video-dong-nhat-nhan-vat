@@ -33,7 +33,7 @@ export const STYLES: Style[] = [
   {
     title: 'Màu Nước (Watercolor)',
     description: 'Nét vẽ loang nghệ thuật, mộc mạc trên nền giấy vân canson.',
-    imageUrl: 'https://images.unsplash.com/photo-1579762792188-fc338100e9b8?auto=format&fit=crop&w=400&q=80',
+    imageUrl: 'https://images.unsplash.com/photo-1582555172866-f73bb12a2ab3?auto=format&fit=crop&w=400&q=80',
     tooltip: '', locked: false,
     promptTemplate: `Style: Artistic Watercolor painting, bleeding colors, wet-on-wet technique, visible paper texture, messy ink splashes. Context: [A]. [CHARACTER_STYLE]`
   },
@@ -82,7 +82,7 @@ export const STYLES: Style[] = [
   {
     title: 'Tranh Cắt Giấy (Paper)',
     description: 'Nghệ thuật xếp giấy nhiều lớp, tạo chiều sâu vật lý.',
-    imageUrl: 'https://images.unsplash.com/photo-1506806732259-39c2d4ad68b9?auto=format&fit=crop&w=400&q=80',
+    imageUrl: 'https://images.unsplash.com/photo-1605142859862-978be7eba909?auto=format&fit=crop&w=400&q=80',
     tooltip: '', locked: false,
     promptTemplate: `Style: Paper Cutout art, multi-layered paper stacks, realistic drop shadows, textured craft paper, diorama feel. Context: [A]. [CHARACTER_STYLE]`
   },
@@ -124,7 +124,7 @@ export const STYLES: Style[] = [
   {
     title: 'Huyền Ảo (Dark Fantasy)',
     description: 'Gothic, ma mị, lâu đài cổ và sương mù huyền bí.',
-    imageUrl: 'https://images.unsplash.com/photo-1519074002996-309e52709a24?auto=format&fit=crop&w=400&q=80',
+    imageUrl: 'https://images.unsplash.com/photo-1518709268805-4e9042af9f23?auto=format&fit=crop&w=400&q=80',
     tooltip: '', locked: false,
     promptTemplate: `Style: Dark Fantasy Gothic, misty graveyard atmosphere, haunting moonlight, intricate lace and iron details. Context: [A]. [CHARACTER_STYLE]`
   },

@@ -100,7 +100,11 @@ export default function App() {
     const keys = apiKeys.length > 0 ? apiKeys : [process.env.API_KEY || ''];
     const idx = currentKeyIndex % keys.length;
     const rotate = () => setCurrentKeyIndex((idx + 1) % keys.length);
-    return { ai: new GoogleGenAI({ apiKey: keys[idx] }), rotate };
+    const apiKeyToUse = keys[idx];
+    if (!apiKeyToUse) {
+      throw new Error("Vui lòng cấu hình ít nhất một API Key trong mục 'API & Model'.");
+    }
+    return { ai: new GoogleGenAI({ apiKey: apiKeyToUse }), rotate };
   }, [apiKeys, currentKeyIndex]);
 
   useEffect(() => {
@@ -370,6 +374,7 @@ Kịch bản thô: "${scriptText}"`;
               tableData={tableData}
               selectedModel={selectedModel}
               onAutoFillRows={handleAutoFillCharacters}
+              getAiInstance={getAiInstance}
             />
             <ResultsView selectedStyle={selectedStyle} tableData={tableData} characters={characters} defaultCharacterIndex={defaultCharacterIndex} onBack={handleBackToStyles} onDocUpload={handleDocUpload} onUpdateRow={handleUpdateRow} onGenerateImage={generateImage} onGenerateAllImages={handleGenerateAllImages} onGenerateVideoPrompt={generateVideoPromptForRow} onGenerateAllVideoPrompts={() => tableData.forEach(r => generateVideoPromptForRow(r.id))} onDownloadAll={() => createProjectAssetsZip(tableData, `images_assets.zip`)} onViewImage={setViewingImage} onStartRemake={setRemakingRow} onOpenHistory={setHistoryRow} onSendToVideo={(id) => generateVideoPromptForRow(id)} isProcessing={isProcessingScript} />
           </div>
