@@ -3,6 +3,7 @@ import React from 'react';
 import type { TableRowData, Character, Style } from '../types';
 import { ResultRow } from './ResultRow';
 import { InfoIcon } from './icons';
+import { Tooltip } from './Tooltip';
 
 interface ResultsTableProps {
   tableData: TableRowData[];
@@ -20,18 +21,6 @@ interface ResultsTableProps {
   onOpenHistory: (row: TableRowData) => void;
   onSendToVideo: (rowId: number) => void;
 }
-
-const Tooltip: React.FC<{ text: string }> = ({ text }) => (
-    <div className="relative flex items-center group">
-        <InfoIcon className="w-4 h-4 ml-1 text-gray-400 dark:text-gray-500 cursor-pointer" />
-        {/* Changed from bottom-full to top-full and increased z-index */}
-        <div className="absolute top-full left-1/2 -translate-x-1/2 mt-2 w-64 p-3 bg-gray-900 text-white text-xs rounded-lg opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-[60] shadow-xl border border-gray-700">
-            {text}
-            {/* Added a small arrow pointing up */}
-            <div className="absolute bottom-full left-1/2 -translate-x-1/2 border-8 border-transparent border-b-gray-900"></div>
-        </div>
-    </div>
-);
 
 export const ResultsTable: React.FC<ResultsTableProps> = ({ 
   tableData, 
@@ -66,34 +55,26 @@ export const ResultsTable: React.FC<ResultsTableProps> = ({
         <div className="flex justify-between items-center bg-green-50/50 dark:bg-green-900/10 p-4 rounded-xl border border-green-100 dark:border-green-900/30">
             <p className="text-sm font-medium text-green-700 dark:text-green-400">⚡ Mẹo: Sử dụng các nút điều khiển hàng loạt để tối ưu hóa quy trình sản xuất.</p>
             <div className="flex gap-3">
-                <div className="group relative">
+                <Tooltip content={allRowsHaveImages 
+                    ? 'AI sẽ vẽ lại toàn bộ phiên bản mới cho tất cả các phân cảnh (tạo thêm bản sao).'
+                    : 'Kích hoạt vẽ AI cho tất cả các phân cảnh chưa có ảnh cùng lúc.'
+                }>
                     <button 
                         onClick={() => onGenerateAllImages(allRowsHaveImages)} 
                         className="text-sm font-bold py-2.5 px-6 rounded-lg bg-green-600 text-white hover:bg-orange-500 shadow-md transition-all active:scale-95"
                     >
                         {allRowsHaveImages ? 'Tạo lại ảnh hàng loạt' : 'Tạo ảnh hàng loạt'}
                     </button>
-                    <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 hidden group-hover:block w-48 p-2 bg-gray-900 text-white text-[10px] rounded-lg shadow-xl z-[60] text-center border border-gray-700">
-                        {allRowsHaveImages 
-                            ? 'LƯU Ý: AI sẽ vẽ lại toàn bộ phiên bản mới cho tất cả các phân cảnh (tạo thêm bản sao).'
-                            : 'Kích hoạt vẽ AI cho tất cả các phân cảnh chưa có ảnh cùng lúc.'
-                        }
-                        <div className="absolute top-full left-1/2 -translate-x-1/2 border-8 border-transparent border-t-gray-900"></div>
-                    </div>
-                </div>
+                </Tooltip>
 
-                <div className="group relative">
+                <Tooltip content="AI sẽ đọc từng ảnh đã vẽ để viết câu lệnh chuyển động camera 8 giây.">
                     <button 
                         onClick={onGenerateAllVideoPrompts} 
                         className="text-sm font-bold py-2.5 px-6 rounded-lg bg-green-100 text-green-700 hover:bg-orange-100 hover:text-orange-700 dark:bg-green-900/30 dark:text-green-300 dark:hover:bg-orange-900/30 dark:hover:text-orange-300 transition-all border border-green-200 dark:border-green-800 active:scale-95"
                     >
                         Tạo tất cả prompt video
                     </button>
-                    <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 hidden group-hover:block w-48 p-2 bg-gray-900 text-white text-[10px] rounded-lg shadow-xl z-[60] text-center border border-gray-700">
-                        AI sẽ đọc từng ảnh đã vẽ để viết câu lệnh chuyển động camera 8 giây.
-                        <div className="absolute top-full left-1/2 -translate-x-1/2 border-8 border-transparent border-t-gray-900"></div>
-                    </div>
-                </div>
+                </Tooltip>
             </div>
         </div>
       <div className="overflow-x-auto rounded-xl border border-gray-200 dark:border-[#1f4d3a] shadow-sm">
@@ -101,10 +82,14 @@ export const ResultsTable: React.FC<ResultsTableProps> = ({
           <thead>
             <tr className="bg-gray-50 dark:bg-[#020a06] border-b border-gray-200 dark:border-[#1f4d3a]">
               {headers.map(h => 
-                <th key={h.text} className="p-4 text-left text-gray-500 dark:text-gray-400 font-black uppercase tracking-widest text-[10px] relative">
+                <th key={h.text} className="p-4 text-left text-gray-500 dark:text-gray-400 font-black uppercase tracking-widest text-[10px]">
                     <div className="flex items-center">
                         {h.text}
-                        {h.tooltip && <Tooltip text={h.tooltip} />}
+                        {h.tooltip && (
+                            <Tooltip content={h.tooltip}>
+                                <InfoIcon className="w-4 h-4 ml-1 text-gray-400 dark:text-gray-500 cursor-pointer" />
+                            </Tooltip>
+                        )}
                     </div>
                 </th>
               )}

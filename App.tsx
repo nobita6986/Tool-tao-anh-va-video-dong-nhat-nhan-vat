@@ -18,6 +18,7 @@ import { getPromptAndPartsForRow } from './utils/fileUtils';
 import { ChatModal } from './components/ChatModal';
 import { ApiKeyManager } from './components/ApiKeyManager';
 import { ScriptProcessingModal, SegmentationMethod } from './components/ScriptProcessingModal';
+import { Tooltip } from './components/Tooltip';
 
 const normalizeName = (name: string): string => {
   if (!name) return '';
@@ -293,7 +294,7 @@ LƯU Ý: Không thêm văn bản thừa ngoài bảng Markdown.`;
             prompt: prompt,
             config: {
                 numberOfImages: 1,
-                aspectRatio: currentRatio, // Sử dụng tỷ lệ đã chọn
+                aspectRatio: currentRatio, 
                 outputMimeType: 'image/jpeg'
             }
          });
@@ -301,7 +302,7 @@ LƯU Ý: Không thêm văn bản thừa ngoài bảng Markdown.`;
       } else {
          // Gemini Models
          const imageConfig: any = {
-             aspectRatio: currentRatio // Sử dụng tỷ lệ đã chọn
+             aspectRatio: currentRatio 
          };
          if (selectedImageModel === 'gemini-3-pro-image-preview') {
              imageConfig.imageSize = '2K';
@@ -365,11 +366,8 @@ LƯU Ý: Không thêm văn bản thừa ngoài bảng Markdown.`;
         }
     }
 
-    // Thực hiện tuần tự để đảm bảo kiểm soát lỗi tốt hơn, nhưng không dùng stateRef ở đây để loop
-    // mà dùng danh sách đã filter từ ban đầu.
     for (const row of rowsToProcess) {
         await generateImage(row.id);
-        // Delay hợp lý để tránh rate limit quá gắt
         await delay(5000 + Math.random() * 2000); 
     }
   }, [tableData, generateImage]);
@@ -449,18 +447,26 @@ LƯU Ý: Không thêm văn bản thừa ngoài bảng Markdown.`;
           <div className="flex flex-wrap justify-between items-center gap-x-6 gap-y-3">
             <h1 onClick={handleResetApp} className="text-2xl font-bold tracking-wider gradient-text cursor-pointer">StudyAI86</h1>
             <div className="flex items-center flex-wrap justify-end gap-2">
-               <button onClick={() => setIsApiKeyManagerOpen(true)} className="flex-shrink-0 h-10 font-bold py-2 px-4 rounded-lg bg-green-600 text-white hover:bg-green-700 transition-colors shadow-sm">
-                API & Model
-              </button>
-               <button onClick={() => createProjectAssetsZip(tableData, `images-assets.zip`)} className="flex-shrink-0 h-10 font-semibold py-2 px-4 rounded-lg bg-gray-200 dark:bg-[#0f3a29] text-gray-800 dark:text-green-300 border border-gray-300 dark:border-green-700 hover:bg-orange-100 hover:text-orange-700 transition-colors whitespace-nowrap shadow-sm">
-                Tải toàn bộ ảnh
-              </button>
-              <button onClick={() => exportPromptsToTxt(tableData, `Scripts.txt`)} className="flex-shrink-0 h-10 font-semibold py-2 px-4 rounded-lg bg-gray-200 dark:bg-[#0f3a29] text-gray-800 dark:text-green-300 border border-gray-300 dark:border-green-700 hover:bg-orange-100 hover:text-orange-700 transition-colors whitespace-nowrap shadow-sm">
-                tải prompt video
-              </button>
-               <button onClick={toggleTheme} className="flex-shrink-0 h-10 w-10 flex items-center justify-center rounded-lg bg-gray-200 dark:bg-[#0f3a29] text-gray-800 dark:text-green-300 border border-gray-300 dark:border-green-700 hover:bg-orange-100 hover:text-orange-700 transition-colors shadow-sm">
-                 {theme === 'dark' ? <SunIcon className="w-6 h-6"/> : <MoonIcon className="w-6 h-6"/>}
-              </button>
+               <Tooltip content="Cấu hình API Key và Model AI">
+                    <button onClick={() => setIsApiKeyManagerOpen(true)} className="flex-shrink-0 h-10 font-bold py-2 px-4 rounded-lg bg-green-600 text-white hover:bg-green-700 transition-colors shadow-sm">
+                        API & Model
+                    </button>
+               </Tooltip>
+               <Tooltip content="Tải xuống tất cả ảnh đã tạo dưới dạng file ZIP">
+                    <button onClick={() => createProjectAssetsZip(tableData, `images-assets.zip`)} className="flex-shrink-0 h-10 font-semibold py-2 px-4 rounded-lg bg-gray-200 dark:bg-[#0f3a29] text-gray-800 dark:text-green-300 border border-gray-300 dark:border-green-700 hover:bg-orange-100 hover:text-orange-700 transition-colors whitespace-nowrap shadow-sm">
+                        Tải toàn bộ ảnh
+                    </button>
+               </Tooltip>
+               <Tooltip content="Xuất danh sách prompt video ra file TXT">
+                    <button onClick={() => exportPromptsToTxt(tableData, `Scripts.txt`)} className="flex-shrink-0 h-10 font-semibold py-2 px-4 rounded-lg bg-gray-200 dark:bg-[#0f3a29] text-gray-800 dark:text-green-300 border border-gray-300 dark:border-green-700 hover:bg-orange-100 hover:text-orange-700 transition-colors whitespace-nowrap shadow-sm">
+                        tải prompt video
+                    </button>
+               </Tooltip>
+               <Tooltip content="Chuyển đổi giao diện Sáng/Tối">
+                    <button onClick={toggleTheme} className="flex-shrink-0 h-10 w-10 flex items-center justify-center rounded-lg bg-gray-200 dark:bg-[#0f3a29] text-gray-800 dark:text-green-300 border border-gray-300 dark:border-green-700 hover:bg-orange-100 hover:text-orange-700 transition-colors shadow-sm">
+                        {theme === 'dark' ? <SunIcon className="w-6 h-6"/> : <MoonIcon className="w-6 h-6"/>}
+                    </button>
+               </Tooltip>
             </div>
           </div>
         </div>
@@ -492,7 +498,25 @@ LƯU Ý: Không thêm văn bản thừa ngoài bảng Markdown.`;
               }}
               onViewImage={setPreviewImageUrl}
             />
-            <ResultsView selectedStyle={selectedStyle} tableData={tableData} characters={characters} defaultCharacterIndices={defaultCharacterIndices} onBack={handleBackToStyles} onDocUpload={handleInitiateScriptUpload} onUpdateRow={handleUpdateRow} onGenerateImage={generateImage} onGenerateAllImages={handleGenerateAllImages} onGenerateVideoPrompt={generateVideoPromptForRow} onGenerateAllVideoPrompts={() => tableData.forEach(r => generateVideoPromptForRow(r.id))} onDownloadAll={() => createProjectAssetsZip(tableData, `images_assets.zip`)} onViewImage={setViewingImage} onStartRemake={setRemakingRow} onOpenHistory={setHistoryRow} onSendToVideo={(id) => generateVideoPromptForRow(id)} isProcessing={isProcessingScript} />
+            <ResultsView 
+                selectedStyle={selectedStyle} 
+                tableData={tableData} 
+                characters={characters} 
+                defaultCharacterIndices={defaultCharacterIndices} 
+                onBack={handleBackToStyles} 
+                onDocUpload={handleInitiateScriptUpload} 
+                onUpdateRow={handleUpdateRow} 
+                onGenerateImage={generateImage} 
+                onGenerateAllImages={handleGenerateAllImages} 
+                onGenerateVideoPrompt={generateVideoPromptForRow} 
+                onGenerateAllVideoPrompts={() => tableData.forEach(r => generateVideoPromptForRow(r.id))} 
+                onDownloadAll={() => createProjectAssetsZip(tableData, `images_assets.zip`)} 
+                onViewImage={(imageUrl, rowId) => setViewingImage({ imageUrl, rowId })} 
+                onStartRemake={setRemakingRow} 
+                onOpenHistory={setHistoryRow} 
+                onSendToVideo={(id) => generateVideoPromptForRow(id)} 
+                isProcessing={isProcessingScript} 
+            />
           </div>
         )}
        </FileDropzone>

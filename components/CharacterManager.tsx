@@ -4,6 +4,7 @@ import { GoogleGenAI } from '@google/genai';
 import type { Character, TableRowData, GeminiModel } from '../types';
 import { fileToBase64 } from '../utils/fileUtils';
 import { FileDropzone } from './FileDropzone';
+import { Tooltip } from './Tooltip';
 
 interface CharacterManagerProps {
   characters: Character[];
@@ -56,9 +57,6 @@ export const CharacterManager: React.FC<CharacterManagerProps> = ({
     if (characters.length <= 1) return;
     const newCharacters = characters.filter((_, i) => i !== index);
     setCharacters(newCharacters);
-    // Nếu nhân vật bị xóa đang được chọn, chúng ta có thể cần cập nhật lại indices trong App, 
-    // nhưng việc shift index khá phức tạp nếu không có ID. 
-    // Tạm thời để App tự xử lý hoặc người dùng chọn lại.
     if (defaultCharacterIndices.includes(index)) {
          onToggleDefault(index);
     }
@@ -138,25 +136,33 @@ Kịch bản: "${scriptText.substring(0, 3000)}"`;
           </div>
         </div>
         <div className="flex gap-2" onClick={(e) => e.stopPropagation()}>
-          <button 
-            onClick={detectCharacters}
-            disabled={isDetecting}
-            className="flex items-center gap-2 text-sm font-bold py-2 px-4 rounded-lg bg-green-50 text-green-700 border border-green-200 hover:bg-green-100 dark:bg-green-900/20 dark:text-green-300 dark:border-green-800 transition-all disabled:opacity-50 shadow-sm"
-          >
-            {isDetecting ? <div className="spinner w-4 h-4" /> : '🔍'} Tự động lấy nhân vật
-          </button>
-          <button 
-            onClick={addCharacterSlot}
-            className="text-sm font-bold py-2 px-4 rounded-lg bg-green-600 text-white hover:bg-green-700 shadow-md transition-all active:scale-95"
-          >
-            Thêm nhân vật
-          </button>
-          <button 
-            onClick={onAutoFillRows}
-            className="flex items-center gap-2 text-sm font-bold py-2 px-4 rounded-lg bg-orange-50 text-orange-700 border border-orange-200 hover:bg-orange-100 dark:bg-orange-900/20 dark:text-orange-300 dark:border-orange-800 transition-all shadow-sm"
-          >
-            🪄 Tự động điền nhân vật vào cảnh
-          </button>
+          <Tooltip content="AI phân tích kịch bản và tự động tạo danh sách nhân vật chính">
+            <button 
+                onClick={detectCharacters}
+                disabled={isDetecting}
+                className="flex items-center gap-2 text-sm font-bold py-2 px-4 rounded-lg bg-green-50 text-green-700 border border-green-200 hover:bg-green-100 dark:bg-green-900/20 dark:text-green-300 dark:border-green-800 transition-all disabled:opacity-50 shadow-sm"
+            >
+                {isDetecting ? <div className="spinner w-4 h-4" /> : '🔍'} Tự động lấy nhân vật
+            </button>
+          </Tooltip>
+          
+          <Tooltip content="Thêm một ô nhân vật trống mới">
+            <button 
+                onClick={addCharacterSlot}
+                className="text-sm font-bold py-2 px-4 rounded-lg bg-green-600 text-white hover:bg-green-700 shadow-md transition-all active:scale-95"
+            >
+                Thêm nhân vật
+            </button>
+          </Tooltip>
+
+          <Tooltip content="Quét kịch bản và tự động gán nhân vật vào từng phân cảnh dựa trên tên">
+            <button 
+                onClick={onAutoFillRows}
+                className="flex items-center gap-2 text-sm font-bold py-2 px-4 rounded-lg bg-orange-50 text-orange-700 border border-orange-200 hover:bg-orange-100 dark:bg-orange-900/20 dark:text-orange-300 dark:border-orange-800 transition-all shadow-sm"
+            >
+                🪄 Tự động điền nhân vật vào cảnh
+            </button>
+          </Tooltip>
         </div>
       </div>
 

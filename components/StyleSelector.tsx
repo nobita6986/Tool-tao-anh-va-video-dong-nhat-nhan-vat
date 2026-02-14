@@ -3,6 +3,7 @@ import React, { useState, useMemo, useRef, useEffect } from 'react';
 import type { Style, AspectRatio } from '../types';
 import { STYLES } from '../constants';
 import { CopyIcon } from './icons';
+import { Tooltip } from './Tooltip';
 
 interface StyleSelectorProps {
   onSelectStyle: (style: Style) => void;
@@ -183,17 +184,18 @@ Ví dụ:
                  {/* Aspect Ratio Selector */}
                  <div className="bg-white dark:bg-[#020a06] p-1.5 rounded-xl border border-gray-200 dark:border-gray-800 flex gap-1 shadow-sm">
                     {(['16:9', '9:16', '1:1', '4:3', '3:4'] as AspectRatio[]).map((ratio) => (
-                        <button
-                            key={ratio}
-                            onClick={() => setAspectRatio(ratio)}
-                            className={`flex-1 py-2 rounded-lg text-xs font-bold transition-all ${
-                                aspectRatio === ratio 
-                                ? 'bg-green-600 text-white shadow-md' 
-                                : 'text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-800'
-                            }`}
-                        >
-                            {ratio}
-                        </button>
+                        <Tooltip key={ratio} content={`Tỷ lệ khung hình ${ratio}`}>
+                            <button
+                                onClick={() => setAspectRatio(ratio)}
+                                className={`flex-1 py-2 px-2 rounded-lg text-xs font-bold transition-all whitespace-nowrap ${
+                                    aspectRatio === ratio 
+                                    ? 'bg-green-600 text-white shadow-md' 
+                                    : 'text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-800'
+                                }`}
+                            >
+                                {ratio}
+                            </button>
+                        </Tooltip>
                     ))}
                  </div>
 
