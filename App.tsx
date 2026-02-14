@@ -1,5 +1,5 @@
 
-import React, { useState, useCallback, ChangeEvent, useEffect } from 'react';
+import React, { useState, useCallback, ChangeEvent, useEffect, useRef } from 'react';
 import { GoogleGenAI } from '@google/genai';
 import { STYLES, PRESET_PROMPT_CONTEXT } from './constants';
 import type { Style, Character, TableRowData, ExcelRow, AdjustmentOptions, ColumnMapping, ChatMessage, GeminiModel } from './types';
@@ -79,6 +79,12 @@ export default function App() {
   const [chatState, setChatState] = useState<'closed' | 'open' | 'minimized'>('closed');
   const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
   const [isAiReplying, setIsAiReplying] = useState(false);
+
+  // Use a ref to always have access to the latest state inside async callbacks
+  const stateRef = useRef({ tableData, selectedStyle, characters, defaultCharacterIndex });
+  useEffect(() => {
+    stateRef.current = { tableData, selectedStyle, characters, defaultCharacterIndex };
+  }, [tableData, selectedStyle, characters, defaultCharacterIndex]);
 
   useEffect(() => {
     localStorage.setItem('user_api_keys', JSON.stringify(apiKeys));
@@ -192,7 +198,6 @@ Kịch bản thô: "${scriptText}"`;
         contents: systemInstruction,
       });
 
-      // Fixed: response.text is a property, handled safely with || ''
       const tableRows = parseMarkdownTables(response.text || '');
       if (tableRows.length === 0) throw new Error("AI không tạo được bảng kịch bản hợp lệ.");
 
@@ -222,15 +227,24 @@ Kịch bản thô: "${scriptText}"`;
     }
   }, [characters, defaultCharacterIndex, getAiInstance, selectedModel]);
 
-  const generateImage = useCallback(async (rowId: number, adjustments?: AdjustmentOptions) => {
+  const generateImage = useCallback(async (rowId: number, adjustments?: AdjustmentOptions, retryCount = 0) => {
     setTableData(prevData => prevData.map(r => r.id === rowId ? { ...r, isGenerating: true, error: null } : r));
 
     try {
-      const row = tableData.find(r => r.id === rowId);
-      if (!row || !selectedStyle) return;
+      const { tableData: currentTable, selectedStyle: currentStyle, characters: currentChars, defaultCharacterIndex: currentDef } = stateRef.current;
+      const row = currentTable.find(r => r.id === rowId);
+      if (!row || !currentStyle) return;
 
-      const rowIndex = tableData.findIndex(r => r.id === rowId);
-      const { prompt, parts } = getPromptAndPartsForRow({ row, rowIndex, tableData, selectedStyle, characters, defaultCharacterIndex, adjustments });
+      const rowIndex = currentTable.findIndex(r => r.id === rowId);
+      const { prompt, parts } = getPromptAndPartsForRow({ 
+        row, 
+        rowIndex, 
+        tableData: currentTable, 
+        selectedStyle: currentStyle, 
+        characters: currentChars, 
+        defaultCharacterIndex: currentDef, 
+        adjustments 
+      });
       
       const { ai, rotate } = getAiInstance();
       const response = await ai.models.generateContent({ 
@@ -251,14 +265,25 @@ Kịch bản thô: "${scriptText}"`;
         }));
       } else throw new Error("Không nhận được dữ liệu ảnh từ AI.");
     } catch (err: any) {
-      let errorMessage = err.message;
-      if (errorMessage.includes("429")) {
-          errorMessage = "Hệ thống (429): Tần suất yêu cầu quá nhanh. Hãy thêm nhiều API Key hoặc chờ 2 phút để tiếp tục.";
-          getAiInstance().rotate(); // Chuyển key ngay khi gặp lỗi limit
+      const errorMessage = err.message || "Lỗi không xác định";
+      
+      // Handle 429 Too Many Requests with retry
+      if (errorMessage.includes("429") && retryCount < 3) {
+          getAiInstance().rotate(); // Switch key if possible
+          const backoffTime = 5000 * (retryCount + 1); // 5s, 10s, 15s
+          console.log(`Rate limited. Retrying in ${backoffTime}ms...`);
+          setTableData(prev => prev.map(r => r.id === rowId ? { ...r, error: `Hệ thống bận, đang thử lại lần ${retryCount + 1}...` } : r));
+          await delay(backoffTime);
+          return generateImage(rowId, adjustments, retryCount + 1);
       }
-      setTableData(prev => prev.map(r => r.id === rowId ? { ...r, error: `Lỗi: ${errorMessage}`, isGenerating: false } : r));
+
+      let finalError = errorMessage;
+      if (finalError.includes("429")) {
+          finalError = "Quá nhiều yêu cầu. Hãy thêm nhiều API Key hoặc đợi 2 phút.";
+      }
+      setTableData(prev => prev.map(r => r.id === rowId ? { ...r, error: `Lỗi: ${finalError}`, isGenerating: false } : r));
     }
-  }, [characters, selectedStyle, tableData, defaultCharacterIndex, getAiInstance]);
+  }, [getAiInstance]);
 
   const handleGenerateAllImages = useCallback(async () => {
     const rowsToProcess = tableData.filter(r => r.generatedImages.length === 0 && !r.isGenerating);
@@ -267,10 +292,11 @@ Kịch bản thô: "${scriptText}"`;
         return;
     }
 
+    // Process sequentially to respect rate limits better
     for (let i = 0; i < rowsToProcess.length; i++) {
         await generateImage(rowsToProcess[i].id);
-        // Tăng delay lên 2.5s để đảm bảo không bị 429 với 1 key free
-        await delay(2500); 
+        // Tăng delay lên 3.5s + random jitter để an toàn hơn
+        await delay(3500 + Math.random() * 1000); 
     }
   }, [tableData, generateImage]);
 
@@ -346,7 +372,6 @@ Kịch bản thô: "${scriptText}"`;
                <button onClick={() => setIsApiKeyManagerOpen(true)} className="flex-shrink-0 h-10 font-bold py-2 px-4 rounded-lg bg-green-100 text-green-700 dark:bg-[#0f3a29] dark:text-green-300 border border-green-700 hover:bg-orange-100 hover:text-orange-700 transition-colors whitespace-nowrap shadow-sm">
                 ⚙️ API & Model
               </button>
-               {/* Fixed: tableTableData was a typo, corrected to tableData */}
                <button onClick={() => createProjectAssetsZip(tableData, `images-assets.zip`)} className="flex-shrink-0 h-10 font-semibold py-2 px-4 rounded-lg bg-gray-200 dark:bg-[#0f3a29] text-gray-800 dark:text-green-300 border border-gray-300 dark:border-green-700 hover:bg-orange-100 hover:text-orange-700 transition-colors whitespace-nowrap shadow-sm">
                 Tải toàn bộ ảnh
               </button>
@@ -362,7 +387,8 @@ Kịch bản thô: "${scriptText}"`;
       </header>
       
       <main className="container mx-auto p-6">
-       <FileDropzone onDrop={handleAppDrop} accept=".txt,.docx">
+       {/* Added disableClick={true} to avoid opening file picker when clicking internal UI */}
+       <FileDropzone onDrop={handleAppDrop} accept=".txt,.docx" dropMessage="Tải kịch bản" disableClick={true}>
         {!selectedStyle ? ( <StyleSelector onSelectStyle={handleStyleSelect} /> ) : (
           <div className="space-y-6">
             <CharacterManager 

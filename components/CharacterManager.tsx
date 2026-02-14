@@ -57,6 +57,12 @@ export const CharacterManager: React.FC<CharacterManagerProps> = ({
     if (defaultCharacterIndex === index) onSetDefault(null);
   };
 
+  const removeImage = (charIndex: number, imgIndex: number) => {
+    const newCharacters = [...characters];
+    newCharacters[charIndex].images = newCharacters[charIndex].images.filter((_, i) => i !== imgIndex);
+    setCharacters(newCharacters);
+  };
+
   const detectCharacters = async () => {
     if (tableData.length === 0) {
       alert('Vui lòng tải kịch bản trước để AI có dữ liệu phân tích nhân vật.');
@@ -136,13 +142,13 @@ Kịch bản: "${scriptText.substring(0, 3000)}"`;
             disabled={isDetecting}
             className="flex items-center gap-2 text-sm font-bold py-2 px-4 rounded-lg bg-green-50 text-green-700 border border-green-200 hover:bg-green-100 dark:bg-green-900/20 dark:text-green-300 dark:border-green-800 transition-all disabled:opacity-50 shadow-sm"
           >
-            {isDetecting ? <div className="spinner w-4 h-4" /> : '🔍'} Tự động lấy nhân vật
+            {isDetecting ? <div className="spinner w-4 h-4" /> : '🔍'} Tự động lấy
           </button>
           <button 
             onClick={onAutoFillRows}
             className="flex items-center gap-2 text-sm font-bold py-2 px-4 rounded-lg bg-orange-50 text-orange-700 border border-orange-200 hover:bg-orange-100 dark:bg-orange-900/20 dark:text-orange-300 dark:border-orange-800 transition-all shadow-sm"
           >
-            🪄 Tự động điền nhân vật
+            🪄 Điền tự động
           </button>
         </div>
       </div>
@@ -153,8 +159,8 @@ Kịch bản: "${scriptText.substring(0, 3000)}"`;
             {characters.map((char, index) => (
               <div key={index} className="relative group bg-gray-50 dark:bg-[#020a06] border border-gray-200 dark:border-[#1f4d3a] rounded-2xl p-5 transition-all hover:shadow-md">
                 <button 
-                  onClick={() => removeCharacterSlot(index)}
-                  className="absolute top-2 right-2 w-6 h-6 flex items-center justify-center bg-gray-200 dark:bg-gray-800 text-gray-500 hover:text-red-500 rounded-full text-xs transition-colors"
+                  onClick={(e) => { e.stopPropagation(); removeCharacterSlot(index); }}
+                  className="absolute top-2 right-2 w-6 h-6 flex items-center justify-center bg-gray-200 dark:bg-gray-800 text-gray-500 hover:text-red-500 rounded-full text-xs transition-colors z-10"
                 >
                   ✕
                 </button>
@@ -167,8 +173,9 @@ Kịch bản: "${scriptText.substring(0, 3000)}"`;
                     <input
                       type="text"
                       className="bg-transparent border-b border-gray-300 dark:border-gray-700 text-gray-900 dark:text-white font-bold w-full focus:border-green-500 outline-none transition-colors"
-                      placeholder="Nhập tên..."
+                      placeholder="Tên nhân vật..."
                       value={char.name}
+                      onClick={(e) => e.stopPropagation()}
                       onChange={(e) => handleNameChange(index, e.target.value)}
                     />
                   </div>
@@ -176,29 +183,36 @@ Kịch bản: "${scriptText.substring(0, 3000)}"`;
                   <textarea
                     rows={2}
                     className="w-full bg-white dark:bg-[#0b2b1e] border border-gray-200 dark:border-gray-800 rounded-lg p-3 text-xs text-gray-700 dark:text-gray-300 outline-none focus:ring-1 focus:ring-green-500 resize-none"
-                    placeholder="Lưu ý về phong cách nhân vật (vd: luôn đeo vòng cổ)..."
+                    placeholder="Lưu ý về phong cách..."
                     value={char.stylePrompt}
+                    onClick={(e) => e.stopPropagation()}
                     onChange={(e) => handleStylePromptChange(index, e.target.value)}
                   />
 
                   <FileDropzone
                     onDrop={(files) => processAndUploadImages(index, files)}
                     accept="image/*"
-                    className="border-2 border-dashed border-gray-300 dark:border-gray-800 rounded-xl p-4 text-center cursor-pointer hover:border-green-400 transition-colors"
+                    className="border-2 border-dashed border-gray-300 dark:border-gray-800 rounded-xl p-4 text-center hover:border-green-400 transition-colors bg-white dark:bg-[#0b2b1e]"
                   >
-                    <div className="text-xs text-gray-400 mb-2">Thả tối đa 5 ảnh tham chiếu</div>
+                    <div className="text-[10px] text-gray-400 mb-2 uppercase font-bold">Thả hoặc nhấn để tải ảnh (Max 5)</div>
                     <div className="flex flex-wrap gap-2 justify-center">
                       {char.images.map((img, imgIdx) => (
-                        <div key={imgIdx} className="w-10 h-10 rounded-md overflow-hidden border border-gray-200">
+                        <div key={imgIdx} className="relative w-10 h-10 rounded-md overflow-hidden border border-gray-200 group/img">
                           <img src={img} className="w-full h-full object-cover" />
+                          <button 
+                            onClick={(e) => { e.stopPropagation(); removeImage(index, imgIdx); }}
+                            className="absolute inset-0 bg-red-500/80 text-white flex items-center justify-center opacity-0 group-hover/img:opacity-100 transition-opacity text-[10px]"
+                          >
+                            Xóa
+                          </button>
                         </div>
                       ))}
-                      {char.images.length === 0 && <span className="text-2xl">📸</span>}
+                      {char.images.length === 0 && <span className="text-2xl opacity-30">📸</span>}
                     </div>
                   </FileDropzone>
 
                   <button
-                    onClick={() => onSetDefault(defaultCharacterIndex === index ? null : index)}
+                    onClick={(e) => { e.stopPropagation(); onSetDefault(defaultCharacterIndex === index ? null : index); }}
                     className={`w-full py-2 rounded-lg text-xs font-bold transition-all ${
                       defaultCharacterIndex === index 
                       ? 'bg-green-600 text-white' 
@@ -217,8 +231,9 @@ Kịch bản: "${scriptText.substring(0, 3000)}"`;
             <textarea
               rows={2}
               className="w-full bg-gray-50 dark:bg-[#020a06] border border-gray-200 dark:border-[#1f4d3a] rounded-xl p-4 text-sm outline-none focus:ring-1 focus:ring-green-500"
-              placeholder="Ví dụ: Camera chuyển động mượt mà, không có nhạc nền..."
+              placeholder="Ví dụ: Camera chuyển động mượt mà..."
               value={videoPromptNote}
+              onClick={(e) => e.stopPropagation()}
               onChange={(e) => onVideoPromptNoteChange(e.target.value)}
             />
           </div>
