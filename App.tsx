@@ -2,11 +2,12 @@
 import React, { useState, useCallback, ChangeEvent, useEffect, useRef } from 'react';
 import { GoogleGenAI } from '@google/genai';
 import { STYLES, PRESET_PROMPT_CONTEXT } from './constants';
-import type { Style, Character, TableRowData, ExcelRow, AdjustmentOptions, ColumnMapping, ChatMessage, GeminiModel, ImageGenModel } from './types';
+import type { Style, Character, TableRowData, ExcelRow, AdjustmentOptions, ColumnMapping, ChatMessage, GeminiModel, ImageGenModel, AspectRatio } from './types';
 import { StyleSelector } from './components/StyleSelector';
 import { CharacterManager } from './components/CharacterManager';
 import { ResultsView } from './components/ResultsView';
 import { ImageModal } from './components/ImageModal';
+import { SimpleImageModal } from './components/SimpleImageModal';
 import { RemakeModal } from './components/RemakeModal';
 import { ConfirmationModal } from './components/ConfirmationModal';
 import { createProjectAssetsZip, readExcelFile, createRowAssetsZip, exportPromptsToTxt, createFramesJsonWithImgAndPrompt, readTextFile, parseMarkdownTables } from './utils/fileUtils';
@@ -27,7 +28,7 @@ const normalizeName = (name: string): string => {
     .replace(/\s+/g, '');
 };
 
-const getCharacterIndicesFromStt = (stt: string | number, characters: Character[], defaultCharacterIndex: number | null): number[] => {
+const getCharacterIndicesFromStt = (stt: string | number, characters: Character[], defaultCharacterIndices: number[]): number[] => {
     const sttString = String(stt || '').toLowerCase();
     const selectedCharacterIndices: number[] = [];
     const normalizedCharMap = new Map<string, number>();
@@ -46,7 +47,7 @@ const getCharacterIndicesFromStt = (stt: string | number, characters: Character[
     });
     if (selectedCharacterIndices.length === 0) {
         const hasAnyLetter = /[\p{L}]/u.test(sttString);
-        if (hasAnyLetter && defaultCharacterIndex !== null) selectedCharacterIndices.push(defaultCharacterIndex);
+        if (hasAnyLetter && defaultCharacterIndices.length > 0) selectedCharacterIndices.push(...defaultCharacterIndices);
     }
     return selectedCharacterIndices;
 }
@@ -57,14 +58,16 @@ export default function App() {
   const [characters, setCharacters] = useState<Character[]>([{ name: '', images: [], stylePrompt: '' }]);
   const [selectedStyle, setSelectedStyle] = useState<Style | null>(null);
   const [tableData, setTableData] = useState<TableRowData[]>([]);
-  const [defaultCharacterIndex, setDefaultCharacterIndex] = useState<number | null>(null);
+  const [defaultCharacterIndices, setDefaultCharacterIndices] = useState<number[]>([]);
   const [viewingImage, setViewingImage] = useState<{ imageUrl: string; rowId: number } | null>(null);
+  const [previewImageUrl, setPreviewImageUrl] = useState<string | null>(null);
   const [remakingRow, setRemakingRow] = useState<TableRowData | null>(null);
   const [historyRow, setHistoryRow] = useState<TableRowData | null>(null);
   const [confirmation, setConfirmation] = useState<{ message: string; onConfirm: () => void } | null>(null);
   const [theme, setTheme] = useState(localStorage.getItem('theme') || 'dark');
   const [videoPromptNote, setVideoPromptNote] = useState('');
   const [isProcessingScript, setIsProcessingScript] = useState(false);
+  const [aspectRatio, setAspectRatio] = useState<AspectRatio>('16:9');
   
   // Model xử lý văn bản (Text Model)
   const [selectedModel, setSelectedModel] = useState<GeminiModel>(() => {
@@ -88,10 +91,10 @@ export default function App() {
   const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
   const [isAiReplying, setIsAiReplying] = useState(false);
 
-  const stateRef = useRef({ tableData, selectedStyle, characters, defaultCharacterIndex });
+  const stateRef = useRef({ tableData, selectedStyle, characters, defaultCharacterIndices, aspectRatio });
   useEffect(() => {
-    stateRef.current = { tableData, selectedStyle, characters, defaultCharacterIndex };
-  }, [tableData, selectedStyle, characters, defaultCharacterIndex]);
+    stateRef.current = { tableData, selectedStyle, characters, defaultCharacterIndices, aspectRatio };
+  }, [tableData, selectedStyle, characters, defaultCharacterIndices, aspectRatio]);
 
   useEffect(() => {
     if (theme === 'dark') document.documentElement.classList.add('dark');
@@ -137,7 +140,7 @@ export default function App() {
       setTableData(currentTableData => {
         let hasChanges = false;
         const updatedTableData = currentTableData.map(row => {
-          const newIndices = getCharacterIndicesFromStt(row.originalRow[0], characters, defaultCharacterIndex);
+          const newIndices = getCharacterIndicesFromStt(row.originalRow[0], characters, defaultCharacterIndices);
           if (JSON.stringify([...row.selectedCharacterIndices].sort()) !== JSON.stringify([...newIndices].sort())) {
             hasChanges = true;
             return { ...row, selectedCharacterIndices: newIndices };
@@ -147,11 +150,18 @@ export default function App() {
         return hasChanges ? updatedTableData : currentTableData;
       });
     }
-  }, [characters, defaultCharacterIndex]);
+  }, [characters, defaultCharacterIndices]);
 
   const handleCharactersChange = (newCharacters: Character[]) => { setCharacters(newCharacters); };
   const handleVideoPromptNoteChange = (note: string) => { setVideoPromptNote(note); };
-  const handleSetDefaultCharacter = useCallback((index: number | null) => { setDefaultCharacterIndex(index); }, []);
+  
+  const handleToggleDefaultCharacter = useCallback((index: number) => {
+    setDefaultCharacterIndices(prev => {
+        if (prev.includes(index)) return prev.filter(i => i !== index);
+        return [...prev, index];
+    });
+  }, []);
+
   const handleStyleSelect = useCallback((style: Style) => { setSelectedStyle(style); }, []);
   const handleBackToStyles = () => { setSelectedStyle(null); setTableData([]); };
   
@@ -233,7 +243,7 @@ LƯU Ý: Không thêm văn bản thừa ngoài bảng Markdown.`;
                     id,
                     originalRow: [stt, cols[1] || '', cols[2] || '', cols[3] || '', cols[4] || ''],
                     contextPrompt: cols[4] || '',
-                    selectedCharacterIndices: getCharacterIndicesFromStt(stt, characters, defaultCharacterIndex),
+                    selectedCharacterIndices: getCharacterIndicesFromStt(stt, characters, defaultCharacterIndices),
                     generatedImages: [],
                     mainImageIndex: -1,
                     isGenerating: false,
@@ -257,45 +267,42 @@ LƯU Ý: Không thêm văn bản thừa ngoài bảng Markdown.`;
     };
 
     await runProcessing(0);
-  }, [characters, defaultCharacterIndex, getAiInstance, selectedModel]);
+  }, [characters, defaultCharacterIndices, getAiInstance, selectedModel]);
 
   const generateImage = useCallback(async (rowId: number, adjustments?: AdjustmentOptions, retryCount = 0, keyIdx = 0) => {
     setTableData(prevData => prevData.map(r => r.id === rowId ? { ...r, isGenerating: true, error: keyIdx > 0 ? `Đang thử lại với Key #${keyIdx + 1}...` : null } : r));
 
     try {
-      const { tableData: currentTable, selectedStyle: currentStyle, characters: currentChars, defaultCharacterIndex: currentDef } = stateRef.current;
+      const { tableData: currentTable, selectedStyle: currentStyle, characters: currentChars, defaultCharacterIndices: currentDef, aspectRatio: currentRatio } = stateRef.current;
       const row = currentTable.find(r => r.id === rowId);
       if (!row || !currentStyle) return;
 
       const rowIndex = currentTable.findIndex(r => r.id === rowId);
       const { prompt, parts } = getPromptAndPartsForRow({ 
         row, rowIndex, tableData: currentTable, selectedStyle: currentStyle, 
-        characters: currentChars, defaultCharacterIndex: currentDef, adjustments 
+        characters: currentChars, defaultCharacterIndices: currentDef, adjustments 
       });
       
       const { ai } = getAiInstance(keyIdx);
       let generatedBase64: string | undefined;
 
       if (selectedImageModel.includes('imagen')) {
-         // Imagen Model: Sử dụng generateImages (Chỉ Text-to-Image)
-         // Lưu ý: Imagen qua SDK này thường chỉ nhận text prompt, không nhận parts (ảnh tham chiếu) trực tiếp theo cách của Gemini
+         // Imagen Model
          const response = await ai.models.generateImages({
             model: selectedImageModel,
             prompt: prompt,
             config: {
                 numberOfImages: 1,
-                aspectRatio: '16:9',
+                aspectRatio: currentRatio, // Sử dụng tỷ lệ đã chọn
                 outputMimeType: 'image/jpeg'
             }
          });
          generatedBase64 = response.generatedImages?.[0]?.image?.imageBytes;
       } else {
-         // Gemini Models (Nano Banana): Sử dụng generateContent (Hỗ trợ Image-to-Image / Multimodal)
-         
+         // Gemini Models
          const imageConfig: any = {
-             aspectRatio: '16:9'
+             aspectRatio: currentRatio // Sử dụng tỷ lệ đã chọn
          };
-         // Tự động nâng cấp lên 2K nếu là bản Pro để tận dụng khả năng của model
          if (selectedImageModel === 'gemini-3-pro-image-preview') {
              imageConfig.imageSize = '2K';
          }
@@ -342,17 +349,28 @@ LƯU Ý: Không thêm văn bản thừa ngoài bảng Markdown.`;
     }
   }, [getAiInstance, selectedImageModel]);
 
-  const handleGenerateAllImages = useCallback(async () => {
-    const rowsToProcess = tableData.filter(r => r.generatedImages.length === 0 && !r.isGenerating);
+  const handleGenerateAllImages = useCallback(async (isRegenerate: boolean = false) => {
+    // Nếu isRegenerate là true, lấy tất cả các dòng chưa đang xử lý
+    // Nếu isRegenerate là false, chỉ lấy các dòng chưa có ảnh và chưa đang xử lý
+    const rowsToProcess = tableData.filter(r => !r.isGenerating && (isRegenerate || r.generatedImages.length === 0));
+    
     if (rowsToProcess.length === 0) {
-        alert("Không có ảnh mới cần tạo.");
+        alert(isRegenerate ? "Không có phân cảnh nào để tạo lại." : "Không có ảnh mới cần tạo.");
         return;
     }
 
-    for (let i = 0; i < rowsToProcess.length; i++) {
-        await generateImage(rowsToProcess[i].id);
-        // Tăng delay lên 15s để an toàn cho model tạo ảnh
-        await delay(15000 + Math.random() * 2000); 
+    if (isRegenerate && rowsToProcess.length > 5) {
+        if (!window.confirm(`Bạn có chắc chắn muốn tạo lại ảnh cho toàn bộ ${rowsToProcess.length} phân cảnh không? Việc này sẽ tiêu tốn tài nguyên.`)) {
+            return;
+        }
+    }
+
+    // Thực hiện tuần tự để đảm bảo kiểm soát lỗi tốt hơn, nhưng không dùng stateRef ở đây để loop
+    // mà dùng danh sách đã filter từ ban đầu.
+    for (const row of rowsToProcess) {
+        await generateImage(row.id);
+        // Delay hợp lý để tránh rate limit quá gắt
+        await delay(5000 + Math.random() * 2000); 
     }
   }, [tableData, generateImage]);
 
@@ -365,7 +383,10 @@ LƯU Ý: Không thêm văn bản thừa ngoài bảng Markdown.`;
     setTableData(prevData => prevData.map(r => r.id === rowId ? { ...r, isGeneratingPrompt: true, error: null, videoPrompt: '' } : r));
     try {
         const { ai } = getAiInstance(keyIdx);
-        const parts = [{ inlineData: { data: mainAsset.split(',')[1], mimeType: 'image/png' } }, { text: `Từ kịch bản [${row.originalRow[2]}] hãy viết Prompt Video tiếng Anh dài 300 chữ mô tả chuyển động camera 8 giây. ${videoPromptNote}` }];
+        const parts = [
+            { inlineData: { data: mainAsset.split(',')[1], mimeType: 'image/png' } }, 
+            { text: `Từ kịch bản [${row.originalRow[2]}] hãy viết Prompt Video tiếng Anh dài 300 chữ mô tả chuyển động camera 8 giây. ${videoPromptNote}\n\nYÊU CẦU BẮT BUỘC: Chỉ trả về duy nhất đoạn text tiếng Anh chứa nội dung prompt. Tuyệt đối KHÔNG bao gồm bất kỳ lời dẫn, giải thích, tiêu đề (ví dụ: "Here is the prompt", "Video Prompt:") hay định dạng markdown nào.` }
+        ];
         const responseStream = await ai.models.generateContentStream({ model: selectedModel, contents: { parts } });
         for await (const chunk of responseStream) {
             setTableData(prevData => prevData.map(r => r.id === rowId ? { ...r, videoPrompt: (r.videoPrompt || '') + (chunk.text || '') } : r));
@@ -435,7 +456,7 @@ LƯU Ý: Không thêm văn bản thừa ngoài bảng Markdown.`;
                 Tải toàn bộ ảnh
               </button>
               <button onClick={() => exportPromptsToTxt(tableData, `Scripts.txt`)} className="flex-shrink-0 h-10 font-semibold py-2 px-4 rounded-lg bg-gray-200 dark:bg-[#0f3a29] text-gray-800 dark:text-green-300 border border-gray-300 dark:border-green-700 hover:bg-orange-100 hover:text-orange-700 transition-colors whitespace-nowrap shadow-sm">
-                Xuất Prompt
+                tải prompt video
               </button>
                <button onClick={toggleTheme} className="flex-shrink-0 h-10 w-10 flex items-center justify-center rounded-lg bg-gray-200 dark:bg-[#0f3a29] text-gray-800 dark:text-green-300 border border-gray-300 dark:border-green-700 hover:bg-orange-100 hover:text-orange-700 transition-colors shadow-sm">
                  {theme === 'dark' ? <SunIcon className="w-6 h-6"/> : <MoonIcon className="w-6 h-6"/>}
@@ -447,13 +468,19 @@ LƯU Ý: Không thêm văn bản thừa ngoài bảng Markdown.`;
       
       <main className="container mx-auto p-6">
        <FileDropzone onDrop={(f) => handleInitiateScriptUpload(f[0])} accept=".txt,.docx" dropMessage="Tải kịch bản" disableClick={true}>
-        {!selectedStyle ? ( <StyleSelector onSelectStyle={handleStyleSelect} /> ) : (
+        {!selectedStyle ? ( 
+            <StyleSelector 
+                onSelectStyle={handleStyleSelect} 
+                aspectRatio={aspectRatio}
+                setAspectRatio={setAspectRatio}
+            /> 
+        ) : (
           <div className="space-y-6">
             <CharacterManager 
               characters={characters} 
               setCharacters={handleCharactersChange} 
-              defaultCharacterIndex={defaultCharacterIndex} 
-              onSetDefault={handleSetDefaultCharacter} 
+              defaultCharacterIndices={defaultCharacterIndices} 
+              onToggleDefault={handleToggleDefaultCharacter} 
               videoPromptNote={videoPromptNote} 
               onVideoPromptNoteChange={handleVideoPromptNoteChange}
               tableData={tableData}
@@ -463,14 +490,16 @@ LƯU Ý: Không thêm văn bản thừa ngoài bảng Markdown.`;
                   const { ai } = getAiInstance(idx); 
                   return { ai, rotate: () => {} }; 
               }}
+              onViewImage={setPreviewImageUrl}
             />
-            <ResultsView selectedStyle={selectedStyle} tableData={tableData} characters={characters} defaultCharacterIndex={defaultCharacterIndex} onBack={handleBackToStyles} onDocUpload={handleInitiateScriptUpload} onUpdateRow={handleUpdateRow} onGenerateImage={generateImage} onGenerateAllImages={handleGenerateAllImages} onGenerateVideoPrompt={generateVideoPromptForRow} onGenerateAllVideoPrompts={() => tableData.forEach(r => generateVideoPromptForRow(r.id))} onDownloadAll={() => createProjectAssetsZip(tableData, `images_assets.zip`)} onViewImage={setViewingImage} onStartRemake={setRemakingRow} onOpenHistory={setHistoryRow} onSendToVideo={(id) => generateVideoPromptForRow(id)} isProcessing={isProcessingScript} />
+            <ResultsView selectedStyle={selectedStyle} tableData={tableData} characters={characters} defaultCharacterIndices={defaultCharacterIndices} onBack={handleBackToStyles} onDocUpload={handleInitiateScriptUpload} onUpdateRow={handleUpdateRow} onGenerateImage={generateImage} onGenerateAllImages={handleGenerateAllImages} onGenerateVideoPrompt={generateVideoPromptForRow} onGenerateAllVideoPrompts={() => tableData.forEach(r => generateVideoPromptForRow(r.id))} onDownloadAll={() => createProjectAssetsZip(tableData, `images_assets.zip`)} onViewImage={setViewingImage} onStartRemake={setRemakingRow} onOpenHistory={setHistoryRow} onSendToVideo={(id) => generateVideoPromptForRow(id)} isProcessing={isProcessingScript} />
           </div>
         )}
        </FileDropzone>
       </main>
 
       <ImageModal viewData={viewingImage} tableData={tableData} onClose={() => setViewingImage(null)} />
+      <SimpleImageModal imageUrl={previewImageUrl} onClose={() => setPreviewImageUrl(null)} />
       <RemakeModal rowData={remakingRow} tableData={tableData} onClose={() => setRemakingRow(null)} onRemake={(id, adj) => { setRemakingRow(null); generateImage(id, adj); }} />
       <ConfirmationModal isOpen={!!confirmation} message={confirmation?.message || ''} onConfirm={() => confirmation?.onConfirm()} onClose={() => setConfirmation(null)} />
       <VersionHistoryModal isOpen={!!historyRow} rowData={historyRow ? tableData.find(r => r.id === historyRow.id) : null} onClose={() => setHistoryRow(null)} onSetMain={handleSetMainImage} onDownloadAll={handleDownloadRowAssets} />

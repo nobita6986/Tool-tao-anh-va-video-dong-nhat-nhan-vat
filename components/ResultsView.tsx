@@ -8,12 +8,12 @@ interface ResultsViewProps {
   selectedStyle: Style;
   tableData: TableRowData[];
   characters: Character[];
-  defaultCharacterIndex: number | null;
+  defaultCharacterIndices: number[];
   onBack: () => void;
   onDocUpload: (file: File) => void;
   onUpdateRow: (row: TableRowData) => void;
   onGenerateImage: (rowId: number) => void;
-  onGenerateAllImages: () => void;
+  onGenerateAllImages: (isRegenerate?: boolean) => void;
   onGenerateVideoPrompt: (rowId: number) => void;
   onGenerateAllVideoPrompts: () => void;
   onDownloadAll: () => void;
@@ -37,7 +37,7 @@ export const ResultsView: React.FC<ResultsViewProps> = ({
   onGenerateAllVideoPrompts,
   onGenerateVideoPrompt,
   onDownloadAll,
-  defaultCharacterIndex,
+  defaultCharacterIndices,
   onViewImage,
   isProcessing = false,
   ...rest
@@ -106,7 +106,7 @@ export const ResultsView: React.FC<ResultsViewProps> = ({
           tableData={tableData}
           characters={characters}
           selectedStyle={selectedStyle}
-          defaultCharacterIndex={defaultCharacterIndex}
+          defaultCharacterIndices={defaultCharacterIndices}
           onStartRemake={onStartRemake}
           onOpenHistory={onOpenHistory}
           onGenerateImage={onGenerateImage}

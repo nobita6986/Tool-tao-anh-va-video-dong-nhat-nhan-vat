@@ -7,10 +7,10 @@ import { InfoIcon } from './icons';
 interface ResultsTableProps {
   tableData: TableRowData[];
   characters: Character[];
-  defaultCharacterIndex: number | null;
+  defaultCharacterIndices: number[];
   onUpdateRow: (row: TableRowData) => void;
   onGenerateImage: (rowId: number) => void;
-  onGenerateAllImages: () => void;
+  onGenerateAllImages: (isRegenerate?: boolean) => void;
   onGenerateAllVideoPrompts: () => void;
   onGenerateVideoPrompt: (rowId: number) => void;
   onDownloadAll: () => void;
@@ -47,7 +47,7 @@ export const ResultsTable: React.FC<ResultsTableProps> = ({
   onOpenHistory, 
   onSendToVideo, 
   onGenerateVideoPrompt, 
-  defaultCharacterIndex 
+  defaultCharacterIndices 
 }) => {
   const headers = [
     { text: "STT", tooltip: "Số thứ tự phân cảnh. Dùng để định danh và gán nhân vật tự động." },
@@ -59,6 +59,8 @@ export const ResultsTable: React.FC<ResultsTableProps> = ({
     { text: "Prompt video", tooltip: "Câu lệnh điều khiển camera và chuyển động được AI phân tích từ hình ảnh." },
   ];
 
+  const allRowsHaveImages = tableData.length > 0 && tableData.every(r => r.generatedImages.length > 0);
+
   return (
     <div className="space-y-4">
         <div className="flex justify-between items-center bg-green-50/50 dark:bg-green-900/10 p-4 rounded-xl border border-green-100 dark:border-green-900/30">
@@ -66,13 +68,16 @@ export const ResultsTable: React.FC<ResultsTableProps> = ({
             <div className="flex gap-3">
                 <div className="group relative">
                     <button 
-                        onClick={onGenerateAllImages} 
+                        onClick={() => onGenerateAllImages(allRowsHaveImages)} 
                         className="text-sm font-bold py-2.5 px-6 rounded-lg bg-green-600 text-white hover:bg-orange-500 shadow-md transition-all active:scale-95"
                     >
-                        Tạo ảnh hàng loạt
+                        {allRowsHaveImages ? 'Tạo lại ảnh hàng loạt' : 'Tạo ảnh hàng loạt'}
                     </button>
                     <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 hidden group-hover:block w-48 p-2 bg-gray-900 text-white text-[10px] rounded-lg shadow-xl z-[60] text-center border border-gray-700">
-                        Kích hoạt vẽ AI cho tất cả các phân cảnh chưa có ảnh cùng lúc.
+                        {allRowsHaveImages 
+                            ? 'LƯU Ý: AI sẽ vẽ lại toàn bộ phiên bản mới cho tất cả các phân cảnh (tạo thêm bản sao).'
+                            : 'Kích hoạt vẽ AI cho tất cả các phân cảnh chưa có ảnh cùng lúc.'
+                        }
                         <div className="absolute top-full left-1/2 -translate-x-1/2 border-8 border-transparent border-t-gray-900"></div>
                     </div>
                 </div>
@@ -119,7 +124,7 @@ export const ResultsTable: React.FC<ResultsTableProps> = ({
                 onStartRemake={onStartRemake} 
                 onOpenHistory={onOpenHistory} 
                 onSendToVideo={onSendToVideo} 
-                defaultCharacterIndex={defaultCharacterIndex} 
+                defaultCharacterIndex={defaultCharacterIndices[0]} 
               />
             ))}
           </tbody>

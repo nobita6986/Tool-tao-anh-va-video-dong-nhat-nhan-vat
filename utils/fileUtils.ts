@@ -119,24 +119,40 @@ export const getPromptForRow = (row: TableRowData, selectedStyle: Style, charact
             characterNames.push(`"${character.name}"`);
             
             if (character.stylePrompt) {
-                characterDetails += `+ Phong cách nhân vật "${character.name}": ${character.stylePrompt}\n`;
+                characterDetails += `+ ${character.name}: ${character.stylePrompt}\n`;
             }
         });
         
         let template = originalTemplate;
         if (characterNames.length > 0) {
-             const multiCharacterInstruction = `**YÊU CẦU QUAN TRỌNG:** Vẽ lại các nhân vật sau: ${characterNames.join(', ')}. Bạn sẽ được cung cấp hình ảnh tham chiếu cho mỗi nhân vật này. Bắt buộc phải tuân thủ nghiêm ngặt ngoại hình và trang phục từ các hình ảnh tham chiếu tương ứng cho TỪNG nhân vật. Toàn bộ bối cảnh, môi trường và hành động phải được tạo ra hoàn toàn dựa trên văn bản prompt sau đây. Không được sao chép hay tái sử dụng bối cảnh từ hình ảnh gốc.
+             const multiCharacterInstruction = `**STRICT REFERENCE REQUIRED:** 
+I have provided reference images for the following characters: ${characterNames.join(', ')}. 
+You MUST adhere strictly to their facial features, hair, age, body type, and clothing from the provided images. 
+DO NOT hallucinate new appearances. DO NOT copy the background from reference images.
+Only use the reference images for character consistency.
+Create the scene context described below.
 
-Hãy vẽ lại các nhân vật tôi gửi, với chính xác ngoại hình, trang phục nhưng customize theo phong cách sau`;
+${characterDetails}`;
             
+            // Replace the generic intro with our strong reference instruction
             const introRegex = /^\*\*YÊU CẦU QUAN TRỌNG:[\s\S]*?Vẽ lại nhân vật tôi gửi, với chính xác ngoại hình, trang phục nhưng customize theo phong cách sau/s;
-            template = template.replace(introRegex, multiCharacterInstruction);
+            // If the template has the Vietnamese intro, replace it. Otherwise, prepend.
+            if (introRegex.test(template)) {
+                template = template.replace(introRegex, multiCharacterInstruction);
+            } else {
+                template = multiCharacterInstruction + "\n" + template;
+            }
         }
 
-        basePrompt = template.replace('[CHARACTER_STYLE]', characterDetails).replace('[A]', row.contextPrompt);
+        basePrompt = template.replace('[CHARACTER_STYLE]', '').replace('[A]', row.contextPrompt);
 
     } else if (selectedCharIndices.length === 1 && selectedCharIndices[0] === -2) { 
-        const randomCharacterInstruction = `**YÊU CẦU QUAN TRỌNG: Sử dụng hình ảnh tôi cung cấp CHỈ để tham chiếu phong cách nghệ thuật (màu sắc, ánh sáng, kết cấu). KHÔNG được sao chép nhân vật trong hình ảnh tham chiếu. Thay vào đó, hãy TẠO MỘT NHÂN VẬT MỚI theo phong cách đó. Hãy đọc kỹ kịch bản và bối cảnh sau đây để xác định các đặc điểm ngoại hình phù hợp cho nhân vật (khoảng tuổi, giới tính, quốc gia, màu da, v.v.).**`;
+        const randomCharacterInstruction = `**CREATIVE CHARACTER GENERATION:**
+Use the provided image purely for ART STYLE reference (lighting, texture, color palette).
+DO NOT copy the character in the reference image.
+CREATE A NEW CHARACTER based on the scene description below.
+Pay attention to age, gender, ethnicity, and clothing described in the prompt.`;
+        
         let template = originalTemplate;
         template = template.replace(
             /^\*\*YÊU CẦU QUAN TRỌNG:[\s\S]*?Vẽ lại nhân vật tôi gửi, với chính xác ngoại hình, trang phục nhưng customize theo phong cách sau/s,
@@ -145,14 +161,16 @@ Hãy vẽ lại các nhân vật tôi gửi, với chính xác ngoại hình, tr
         template = template.replace('[CHARACTER_STYLE]', '');
         basePrompt = template.replace('[A]', row.contextPrompt);
     } else { 
-        const nonCharacterInstruction = `\n\n**LƯU Ý:** Không cần tạo hình ảnh có nhân vật chính. Bối cảnh cần được vẽ theo phong cách nghệ thuật đã được định sẵn. Nếu trong bối cảnh có nhân vật phụ, các nhân vật này cũng cần tuân theo phong cách nghệ thuật chung.`;
+        const nonCharacterInstruction = `\n\n**SCENE GENERATION:** No specific main characters. Use provided images for ART STYLE consistency only.`;
         const refCharacterIndex = characters.findIndex(c => c && c.images.length > 0);
         let sceneTemplate;
 
         if (refCharacterIndex === -1) {
-            sceneTemplate = originalTemplate.replace(/^\*\*YÊU CẦU QUAN TRỌNG:[\s\S]*?Vẽ lại nhân vật tôi gửi, với chính xác ngoại hình, trang phục nhưng customize theo phong cách sau/s, 'Tạo một hình ảnh với phong cách nghệ thuật nhất quán như các ảnh phân cảnh trước đó.');
+             // No reference images at all
+            sceneTemplate = originalTemplate.replace(/^\*\*YÊU CẦU QUAN TRỌNG:[\s\S]*?Vẽ lại nhân vật tôi gửi, với chính xác ngoại hình, trang phục nhưng customize theo phong cách sau/s, 'Create an image with consistent art style.');
         } else {
-            sceneTemplate = originalTemplate.replace(/^\*\*YÊU CẦU QUAN TRỌNG:[\s\S]*?Vẽ lại nhân vật tôi gửi, với chính xác ngoại hình, trang phục nhưng customize theo phong cách sau/s, `**YÊU CẦU QUAN TRỌNG: Sử dụng hình ảnh tôi cung cấp CHỈ để tham chiếu phong cách nghệ thuật (màu sắc, ánh sáng, kết cấu). KHÔNG được vẽ nhân vật trong hình ảnh này vào bối cảnh. Toàn bộ bối cảnh, môi trường và hành động phải được tạo ra hoàn toàn dựa trên văn bản prompt sau đây.**`);
+             // Has reference images but no character selected for this row
+            sceneTemplate = originalTemplate.replace(/^\*\*YÊU CẦU QUAN TRỌNG:[\s\S]*?Vẽ lại nhân vật tôi gửi, với chính xác ngoại hình, trang phục nhưng customize theo phong cách sau/s, `**STYLE REFERENCE ONLY:** Use the provided images for ART STYLE reference (lighting, texture, color palette) ONLY. DO NOT include the characters from the reference images.`);
         }
         sceneTemplate = sceneTemplate.replace(/Chi tiết nhân vật:[\s\S]*?\+ Phong cách vẽ bối cảnh:/s, '+ Phong cách vẽ bối cảnh:');
         sceneTemplate = sceneTemplate.replace('[CHARACTER_STYLE]', '');
@@ -163,9 +181,11 @@ Hãy vẽ lại các nhân vật tôi gửi, với chính xác ngoại hình, tr
 
 export const getPromptAndPartsForRow = ({
     row,
+    rowIndex,
     tableData,
     selectedStyle,
     characters,
+    defaultCharacterIndices,
     adjustments,
 }: {
     row: TableRowData;
@@ -173,13 +193,15 @@ export const getPromptAndPartsForRow = ({
     tableData: TableRowData[];
     selectedStyle: Style;
     characters: Character[];
-    defaultCharacterIndex: number | null;
+    defaultCharacterIndices: number[];
     adjustments?: AdjustmentOptions;
 }): { prompt: string; parts: any[] } => {
     let prompt = getPromptForRow(row, selectedStyle, characters);
     const parts: any[] = [];
 
     const selectedCharIndices = row.selectedCharacterIndices;
+    
+    // Add Character Reference Images
     if (selectedCharIndices.length > 0 && selectedCharIndices[0] >= 0) { 
         selectedCharIndices.forEach((charIndex) => {
             const character = characters[charIndex];
@@ -197,6 +219,7 @@ export const getPromptAndPartsForRow = ({
             }
         });
     } else { 
+        // Add Style Reference Image if no character is selected
         const refCharacter = characters.find((c) => c && c.images.length > 0);
         if (refCharacter && refCharacter.images.length > 0) {
             const imgDataUrl = refCharacter.images[0]; 
@@ -213,18 +236,18 @@ export const getPromptAndPartsForRow = ({
 
     if (adjustments) {
         const ADJUSTMENT_OPTIONS = {
-            RE_EVALUATE_LOGIC: 'Logic lại ảnh: Yêu cầu đọc lại "Nguyên văn phân cảnh" để hiểu rõ câu chuyện.',
-            BYPASS_POLICY: 'Lách chính sách: Viết lại prompt để tránh vi phạm chính sách nội dung.',
-            STYLE_CONSISTENCY: 'Đồng nhất phong cách vẽ: Yêu cầu phong cách nghệ thuật phải nhất quán với các ảnh đã tạo thành công trước đó.',
-            CHARACTER_STYLE: 'Phong cách nhân vật: Yêu cầu tuân thủ nghiêm ngặt phong cách nhân vật đã mô tả.',
-            CHARACTER_CONSISTENCY: 'Đồng nhất nhân vật: Yêu cầu xem lại ảnh gốc để đồng nhất nhân vật.',
-            COSTUME_CONSISTENCY: 'Đồng nhất trang phục: Đồng nhất trang phục với các scene cùng bối cảnh.',
-            CAMERA_POSITION: 'Trùng vị trí camera: Yêu cầu đổi một góc camera khác với ảnh đã tạo trước đó.',
-            CHARACTER_ANGLE: 'Trùng góc nhân vật: Đổi góc độ nhìn nhân vật (ví dụ: trực diện sang nghiêng, sau lưng,...).',
-            MATCH_ASPECT_RATIO: 'Sai tỉ lệ ảnh: Yêu cầu tỉ lệ khung ảnh phải nhất quán với ảnh gần nhất.',
+            RE_EVALUATE_LOGIC: 'Logic check: Re-read the scene to ensure logical consistency.',
+            BYPASS_POLICY: 'Policy Compliance: Ensure the image adheres to safety guidelines while maintaining the scene\'s intent.',
+            STYLE_CONSISTENCY: 'Style Consistency: Match the art style of previous successful images.',
+            CHARACTER_STYLE: 'Character Fidelity: Strictly adhere to the character description and reference.',
+            CHARACTER_CONSISTENCY: 'Character Consistency: Ensure the character looks the same as in the reference.',
+            COSTUME_CONSISTENCY: 'Costume Consistency: Keep the clothing consistent with the scene context.',
+            CAMERA_POSITION: 'Camera Angle: Change the camera angle (e.g., from high to low or vice versa).',
+            CHARACTER_ANGLE: 'Character Angle: Show the character from a different perspective (e.g., side view, back view).',
+            MATCH_ASPECT_RATIO: 'Aspect Ratio: Maintain the aspect ratio of the previous image.',
         };
 
-        let adjustmentText = "\n\n**ĐIỀU CHỈNH BỔ SUNG:** Dựa trên các phản hồi sau, hãy sửa đổi hình ảnh:";
+        let adjustmentText = "\n\n**ADJUSTMENTS:** Based on feedback, apply the following changes:";
         
         adjustments.options.forEach((opt) => {
             const description = ADJUSTMENT_OPTIONS[opt as keyof typeof ADJUSTMENT_OPTIONS];
@@ -234,11 +257,11 @@ export const getPromptAndPartsForRow = ({
         });
 
         if (adjustments.manualPrompt) {
-            adjustmentText += `\n- Yêu cầu thủ công: ${adjustments.manualPrompt}`;
+            adjustmentText += `\n- User Manual Request: ${adjustments.manualPrompt}`;
             
             const sceneMatches = adjustments.manualPrompt.match(/\[scene_([\w.-]+)\]/g);
             if (sceneMatches) {
-                adjustmentText += `\n- Các ảnh tham chiếu được cung cấp:`;
+                adjustmentText += `\n- Visual References provided from other scenes:`;
                 sceneMatches.forEach((match) => {
                     const sceneId = match.match(/\[scene_([\w.-]+)\]/)?.[1];
                     if (sceneId) {
@@ -256,7 +279,7 @@ export const getPromptAndPartsForRow = ({
                                         mimeType: mimeType,
                                     },
                                 });
-                                adjustmentText += ` Ảnh từ scene ${sceneId}.`;
+                                adjustmentText += ` (Image included for Scene ${sceneId})`;
                             }
                         }
                     }

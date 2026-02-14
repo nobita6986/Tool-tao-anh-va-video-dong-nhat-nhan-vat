@@ -8,27 +8,29 @@ import { FileDropzone } from './FileDropzone';
 interface CharacterManagerProps {
   characters: Character[];
   setCharacters: (characters: Character[]) => void;
-  defaultCharacterIndex: number | null;
-  onSetDefault: (index: number | null) => void;
+  defaultCharacterIndices: number[];
+  onToggleDefault: (index: number) => void;
   videoPromptNote: string;
   onVideoPromptNoteChange: (note: string) => void;
   tableData: TableRowData[];
   selectedModel: GeminiModel;
   onAutoFillRows: () => void;
   getAiInstance: () => { ai: GoogleGenAI, rotate: () => void };
+  onViewImage: (url: string) => void;
 }
 
 export const CharacterManager: React.FC<CharacterManagerProps> = ({ 
   characters, 
   setCharacters, 
-  defaultCharacterIndex, 
-  onSetDefault, 
+  defaultCharacterIndices, 
+  onToggleDefault, 
   videoPromptNote, 
   onVideoPromptNoteChange,
   tableData,
   selectedModel,
   onAutoFillRows,
-  getAiInstance
+  getAiInstance,
+  onViewImage
 }) => {
   const [isDetecting, setIsDetecting] = useState(false);
   const [isExpanded, setIsExpanded] = useState(false);
@@ -54,7 +56,12 @@ export const CharacterManager: React.FC<CharacterManagerProps> = ({
     if (characters.length <= 1) return;
     const newCharacters = characters.filter((_, i) => i !== index);
     setCharacters(newCharacters);
-    if (defaultCharacterIndex === index) onSetDefault(null);
+    // Nếu nhân vật bị xóa đang được chọn, chúng ta có thể cần cập nhật lại indices trong App, 
+    // nhưng việc shift index khá phức tạp nếu không có ID. 
+    // Tạm thời để App tự xử lý hoặc người dùng chọn lại.
+    if (defaultCharacterIndices.includes(index)) {
+         onToggleDefault(index);
+    }
   };
 
   const removeImage = (charIndex: number, imgIndex: number) => {
@@ -156,7 +163,9 @@ Kịch bản: "${scriptText.substring(0, 3000)}"`;
       {isExpanded && (
         <div className="p-8 pt-0 border-t border-gray-100 dark:border-[#1f4d3a] space-y-8 animate-in fade-in slide-in-from-top-4 duration-300">
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mt-6">
-            {characters.map((char, index) => (
+            {characters.map((char, index) => {
+              const isSelected = defaultCharacterIndices.includes(index);
+              return (
               <div key={index} className="relative group bg-gray-50 dark:bg-[#020a06] border border-gray-200 dark:border-[#1f4d3a] rounded-2xl p-5 transition-all hover:shadow-md">
                 <button 
                   onClick={(e) => { e.stopPropagation(); removeCharacterSlot(index); }}
@@ -197,8 +206,15 @@ Kịch bản: "${scriptText.substring(0, 3000)}"`;
                     <div className="text-[10px] text-gray-400 mb-2 uppercase font-bold">Thả hoặc nhấn để tải ảnh (Max 5)</div>
                     <div className="flex flex-wrap gap-2 justify-center">
                       {char.images.map((img, imgIdx) => (
-                        <div key={imgIdx} className="relative w-10 h-10 rounded-md overflow-hidden border border-gray-200 group/img">
-                          <img src={img} className="w-full h-full object-cover" />
+                        <div key={imgIdx} className="relative w-10 h-10 rounded-md overflow-hidden border border-gray-200 group/img cursor-pointer">
+                          <img 
+                            src={img} 
+                            className="w-full h-full object-cover hover:scale-110 transition-transform duration-300" 
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                onViewImage(img);
+                            }}
+                          />
                           <button 
                             onClick={(e) => { e.stopPropagation(); removeImage(index, imgIdx); }}
                             className="absolute inset-0 bg-red-500/80 text-white flex items-center justify-center opacity-0 group-hover/img:opacity-100 transition-opacity text-[10px]"
@@ -212,18 +228,18 @@ Kịch bản: "${scriptText.substring(0, 3000)}"`;
                   </FileDropzone>
 
                   <button
-                    onClick={(e) => { e.stopPropagation(); onSetDefault(defaultCharacterIndex === index ? null : index); }}
+                    onClick={(e) => { e.stopPropagation(); onToggleDefault(index); }}
                     className={`w-full py-2.5 rounded-xl text-xs font-black uppercase tracking-widest transition-all ${
-                      defaultCharacterIndex === index 
+                      isSelected
                       ? 'bg-green-600 text-white shadow-lg shadow-green-600/20' 
                       : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 hover:bg-gray-200 border border-transparent'
                     }`}
                   >
-                    {defaultCharacterIndex === index ? '✓ Đang sử dụng' : 'Sử dụng nhân vật này'}
+                    {isSelected ? '✓ Đang sử dụng' : 'Sử dụng nhân vật này'}
                   </button>
                 </div>
               </div>
-            ))}
+            )})}
           </div>
 
           <div className="mt-8 pt-6 border-t border-gray-100 dark:border-[#1f4d3a]">

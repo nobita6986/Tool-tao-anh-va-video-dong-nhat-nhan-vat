@@ -1,14 +1,16 @@
 
 import React, { useState, useMemo, useRef, useEffect } from 'react';
-import type { Style } from '../types';
+import type { Style, AspectRatio } from '../types';
 import { STYLES } from '../constants';
 import { CopyIcon } from './icons';
 
 interface StyleSelectorProps {
   onSelectStyle: (style: Style) => void;
+  aspectRatio: AspectRatio;
+  setAspectRatio: (ratio: AspectRatio) => void;
 }
 
-export const StyleSelector: React.FC<StyleSelectorProps> = ({ onSelectStyle }) => {
+export const StyleSelector: React.FC<StyleSelectorProps> = ({ onSelectStyle, aspectRatio, setAspectRatio }) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedStyleIndex, setSelectedStyleIndex] = useState<number>(0);
   const [customPrompt, setCustomPrompt] = useState('');
@@ -63,7 +65,7 @@ Ví dụ:
   return (
     <section className="max-w-4xl mx-auto space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500 pb-20">
       <div className="text-center space-y-2">
-        <h2 className="text-3xl font-black text-gray-900 dark:text-white uppercase tracking-tight">Bước 1: Chọn Phong Cách Nghệ Thuật</h2>
+        <h2 className="text-3xl font-black text-gray-900 dark:text-white uppercase tracking-tight">Bước 1: Chọn Phong Cách & Tỷ Lệ</h2>
         <p className="text-gray-500 dark:text-gray-400">Hệ thống hỗ trợ 20+ phong cách nghệ thuật được tối ưu cho AI.</p>
       </div>
 
@@ -161,7 +163,7 @@ Ví dụ:
           </div>
 
           {/* Right Side: High-Quality Preview Card */}
-          <div className="bg-gray-50 dark:bg-[#020a06]/50 p-10 flex flex-col justify-center items-center h-full">
+          <div className="bg-gray-50 dark:bg-[#020a06]/50 p-10 flex flex-col justify-center items-center h-full gap-8">
             <div className="w-full max-w-[320px] h-full flex flex-col justify-between">
               <div className="aspect-[4/5] rounded-[32px] overflow-hidden shadow-2xl border-8 border-white dark:border-gray-800 group relative mb-6">
                 <img 
@@ -178,6 +180,23 @@ Ví dụ:
               </div>
               
               <div className="text-center space-y-6">
+                 {/* Aspect Ratio Selector */}
+                 <div className="bg-white dark:bg-[#020a06] p-1.5 rounded-xl border border-gray-200 dark:border-gray-800 flex gap-1 shadow-sm">
+                    {(['16:9', '9:16', '1:1', '4:3', '3:4'] as AspectRatio[]).map((ratio) => (
+                        <button
+                            key={ratio}
+                            onClick={() => setAspectRatio(ratio)}
+                            className={`flex-1 py-2 rounded-lg text-xs font-bold transition-all ${
+                                aspectRatio === ratio 
+                                ? 'bg-green-600 text-white shadow-md' 
+                                : 'text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-800'
+                            }`}
+                        >
+                            {ratio}
+                        </button>
+                    ))}
+                 </div>
+
                 <p className="text-xs text-gray-500 dark:text-gray-400 font-medium leading-relaxed px-4">
                   {showCustom ? 'Tạo hình ảnh dựa trên mô tả phong cách tự do của bạn.' : activeStyle.description}
                 </p>

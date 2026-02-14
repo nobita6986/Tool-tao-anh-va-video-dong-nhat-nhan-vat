@@ -80,25 +80,26 @@ export const ResultRow: React.FC<ResultRowProps> = ({ rowData, characters, onUpd
 
   return (
     <tr className="hover:bg-gray-50/50 dark:hover:bg-green-900/5 transition-colors">
-      <td className="p-4 align-top text-gray-400 font-mono text-xs">{rowData.originalRow[0]}</td>
-      <td className="p-4 align-top text-gray-600 dark:text-gray-400 text-xs w-40">{(rowData.originalRow[1] as string)}</td>
-      <td className="p-4 align-top text-gray-800 dark:text-gray-200 text-xs font-medium w-40">{(rowData.originalRow[2] as string)}</td>
-      <td className="p-4 align-top w-40">
+      <td className="p-4 align-top text-gray-400 font-mono text-xs w-12">{rowData.originalRow[0]}</td>
+      <td className="p-4 align-top text-gray-600 dark:text-gray-400 text-xs w-32 min-w-[128px]">{(rowData.originalRow[1] as string)}</td>
+      <td className="p-4 align-top text-gray-800 dark:text-gray-200 text-xs font-medium w-32 min-w-[128px]">{(rowData.originalRow[2] as string)}</td>
+      <td className="p-4 align-top w-32 min-w-[128px]">
         <CharacterSelector
           characters={characters}
           selectedIndices={rowData.selectedCharacterIndices}
           onChange={(indices) => onUpdateRow({ ...rowData, selectedCharacterIndices: indices })}
         />
       </td>
-      <td className="p-4 align-top">
+      {/* Cố định chiều rộng cột Prompt Bối cảnh */}
+      <td className="p-4 align-top w-[300px] min-w-[300px] max-w-[300px]">
         <textarea
           rows={6}
-          className="w-full bg-transparent border-none p-0 text-xs text-gray-600 dark:text-gray-400 outline-none resize-none focus:text-green-600 dark:focus:text-green-300 transition-colors h-24"
+          className="w-full bg-transparent border border-transparent hover:border-gray-200 dark:hover:border-gray-700 rounded p-1 text-xs text-gray-600 dark:text-gray-400 outline-none resize-none focus:text-green-600 dark:focus:text-green-300 transition-colors h-32"
           value={rowData.contextPrompt}
           onChange={(e) => onUpdateRow({ ...rowData, contextPrompt: e.target.value })}
         />
       </td>
-      <td className="p-4 align-top w-48">
+      <td className="p-4 align-top w-48 min-w-[192px]">
         <div className="flex flex-col gap-2 min-h-[120px] justify-center">
             {rowData.isGenerating ? (
                 <div className="flex flex-col items-center gap-2 py-8">
@@ -138,9 +139,10 @@ export const ResultRow: React.FC<ResultRowProps> = ({ rowData, characters, onUpd
             )}
         </div>
       </td>
-      <td className="p-4 align-top w-64">
+      {/* Cố định chiều rộng cột Prompt Video */}
+      <td className="p-4 align-top w-[300px] min-w-[300px] max-w-[300px]">
         {rowData.isGeneratingPrompt ? (
-            <div className="flex flex-col items-center justify-center h-24 gap-2">
+            <div className="flex flex-col items-center justify-center h-32 gap-2">
                 <div className="spinner w-5 h-5"></div>
                 <span className="text-[10px] font-bold text-green-600">ĐANG VIẾT...</span>
             </div>
@@ -148,13 +150,13 @@ export const ResultRow: React.FC<ResultRowProps> = ({ rowData, characters, onUpd
             <textarea
                 rows={6}
                 readOnly
-                className="w-full bg-gray-50 dark:bg-[#020a06] border border-gray-100 dark:border-[#1f4d3a] rounded-lg p-3 text-[10px] text-gray-500 dark:text-gray-400 outline-none resize-none h-24"
+                className="w-full bg-gray-50 dark:bg-[#020a06] border border-gray-100 dark:border-[#1f4d3a] rounded-lg p-3 text-[10px] text-gray-500 dark:text-gray-400 outline-none resize-none h-32"
                 value={rowData.videoPrompt}
             />
         ) : (
             <button 
                 onClick={() => onGenerateVideoPrompt(rowData.id)}
-                className="w-full py-4 bg-green-50 dark:bg-green-900/10 border border-green-100 dark:border-green-900/30 rounded-xl text-green-700 dark:text-green-400 font-bold text-xs hover:bg-green-100 transition-all flex flex-col items-center gap-1"
+                className="w-full py-8 bg-green-50 dark:bg-green-900/10 border border-green-100 dark:border-green-900/30 rounded-xl text-green-700 dark:text-green-400 font-bold text-xs hover:bg-green-100 transition-all flex flex-col items-center gap-1 h-32 justify-center"
             >
                 <span>🎬</span>
                 TẠO PROMPT VIDEO
