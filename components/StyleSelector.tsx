@@ -9,23 +9,11 @@ interface StyleSelectorProps {
 }
 
 export const StyleSelector: React.FC<StyleSelectorProps> = ({ onSelectStyle }) => {
-  const [isOpen, setIsOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedStyleIndex, setSelectedStyleIndex] = useState<number>(0);
   const [customPrompt, setCustomPrompt] = useState('');
   const [showCustom, setShowCustom] = useState(false);
   const [copyButtonText, setCopyButtonText] = useState('Copy Prompt Hướng dẫn');
-  const dropdownRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
-        setIsOpen(false);
-      }
-    };
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, []);
 
   const filteredStyles = useMemo(() => {
     return STYLES.filter(s => 
@@ -80,10 +68,10 @@ Ví dụ:
       </div>
 
       <div className="bg-white dark:bg-[#0b2b1e] border border-gray-200 dark:border-[#1f4d3a] rounded-[32px] shadow-2xl overflow-hidden">
-        <div className="grid md:grid-cols-2 min-h-[500px] items-stretch">
-          {/* Left Side: Custom Dropdown */}
+        <div className="grid md:grid-cols-2 min-h-[580px] items-stretch">
+          {/* Left Side: Style Library / Custom Prompt */}
           <div className="p-10 flex flex-col border-r border-gray-100 dark:border-gray-800">
-            <div className="flex gap-2 p-1.5 bg-gray-100 dark:bg-[#020a06] rounded-2xl mb-8 flex-shrink-0">
+            <div className="flex gap-2 p-1.5 bg-gray-100 dark:bg-[#020a06] rounded-2xl mb-6 flex-shrink-0">
               <button 
                 onClick={() => setShowCustom(false)}
                 className={`flex-1 py-3 rounded-xl text-sm font-black uppercase tracking-widest transition-all ${!showCustom ? 'bg-white dark:bg-green-600 text-green-700 dark:text-white shadow-lg' : 'text-gray-500 hover:text-gray-700'}`}
@@ -99,68 +87,53 @@ Ví dụ:
             </div>
 
             {!showCustom ? (
-              <div className="flex flex-col flex-grow" ref={dropdownRef}>
-                <div className="space-y-6">
-                  <div className="relative">
-                    <label className="block text-[10px] font-black uppercase text-gray-400 mb-3 tracking-[0.2em]">Chọn phong cách có sẵn</label>
-                    
-                    {/* Custom Dropdown Trigger */}
-                    <div 
-                      onClick={() => setIsOpen(!isOpen)}
-                      className="w-full bg-gray-50 dark:bg-[#020a06] border border-gray-200 dark:border-gray-800 rounded-2xl p-4 flex items-center justify-between cursor-pointer hover:border-green-400 transition-all group"
-                    >
-                      <div className="flex items-center gap-4">
-                        <img src={activeStyle.imageUrl} className="w-10 h-10 rounded-xl object-cover shadow-md" alt="" />
-                        <div className="text-left">
-                          <p className="font-bold text-gray-900 dark:text-white">{activeStyle.title}</p>
-                          <p className="text-[10px] text-gray-400 uppercase tracking-widest">Đã chọn</p>
-                        </div>
-                      </div>
-                      <span className={`text-xl transition-transform duration-300 ${isOpen ? 'rotate-180' : ''}`}>▼</span>
-                    </div>
+              <div className="flex flex-col flex-grow">
+                <div className="space-y-4 flex-grow flex flex-col min-h-0">
+                  <div className="relative flex-shrink-0">
+                    <label className="block text-[10px] font-black uppercase text-gray-400 mb-2 tracking-[0.2em]">Tìm kiếm phong cách</label>
+                    <input 
+                      type="text"
+                      value={searchTerm}
+                      onChange={(e) => setSearchTerm(e.target.value)}
+                      placeholder="Gõ để tìm nhanh..."
+                      className="w-full bg-gray-50 dark:bg-[#020a06] border border-gray-200 dark:border-gray-800 rounded-xl p-3 text-sm outline-none focus:ring-2 focus:ring-green-400 transition-all shadow-inner"
+                    />
+                  </div>
 
-                    {/* Dropdown Menu */}
-                    {isOpen && (
-                      <div className="absolute top-full left-0 right-0 mt-3 bg-white dark:bg-[#0b2b1e] border border-gray-200 dark:border-gray-800 rounded-3xl shadow-2xl z-50 overflow-hidden animate-in fade-in slide-in-from-top-4 duration-200">
-                        <div className="p-4 border-b border-gray-100 dark:border-gray-800">
-                          <input 
-                            type="text"
-                            autoFocus
-                            value={searchTerm}
-                            onChange={(e) => setSearchTerm(e.target.value)}
-                            placeholder="Tìm phong cách (vd: Anime, 3D...)"
-                            className="w-full bg-gray-50 dark:bg-[#020a06] border-none rounded-xl p-3 text-sm outline-none focus:ring-2 focus:ring-green-400"
-                          />
-                        </div>
-                        <div className="max-h-[300px] overflow-y-auto custom-scrollbar">
-                          {filteredStyles.map((style) => {
-                            const originalIndex = STYLES.indexOf(style);
-                            return (
-                              <div
-                                key={style.title}
-                                onClick={() => {
-                                  setSelectedStyleIndex(originalIndex);
-                                  setIsOpen(false);
-                                }}
-                                className="flex items-center gap-4 p-4 hover:bg-green-50 dark:hover:bg-green-900/20 cursor-pointer border-b border-gray-50 dark:border-gray-800/50 last:border-none transition-colors"
-                              >
-                                <img src={style.imageUrl} className="w-12 h-12 rounded-xl object-cover" alt="" />
-                                <div>
-                                  <p className="font-bold text-sm text-gray-900 dark:text-white">{style.title}</p>
-                                  <p className="text-[10px] text-gray-400 line-clamp-1">{style.description}</p>
+                  <div className="flex-grow flex flex-col min-h-0">
+                    <label className="block text-[10px] font-black uppercase text-gray-400 mb-2 tracking-[0.2em]">Danh sách phong cách</label>
+                    <div className="flex-grow overflow-y-auto custom-scrollbar border border-gray-100 dark:border-gray-800 rounded-2xl bg-gray-50/50 dark:bg-[#020a06]/30">
+                      {filteredStyles.length > 0 ? (
+                        filteredStyles.map((style) => {
+                          const originalIndex = STYLES.indexOf(style);
+                          const isActive = selectedStyleIndex === originalIndex;
+                          return (
+                            <div
+                              key={style.title}
+                              onClick={() => setSelectedStyleIndex(originalIndex)}
+                              className={`flex items-center gap-4 p-4 cursor-pointer border-b border-gray-100 dark:border-gray-800/50 last:border-none transition-all hover:bg-white dark:hover:bg-green-900/10 ${isActive ? 'bg-white dark:bg-green-900/20 ring-1 ring-inset ring-green-500' : ''}`}
+                            >
+                              <img src={style.imageUrl} className="w-12 h-12 rounded-xl object-cover shadow-sm" alt="" />
+                              <div className="flex-grow">
+                                <div className="flex justify-between items-center">
+                                  <p className={`font-bold text-sm ${isActive ? 'text-green-600 dark:text-green-400' : 'text-gray-900 dark:text-white'}`}>{style.title}</p>
+                                  {isActive && <span className="text-[10px] bg-green-100 dark:bg-green-900 text-green-700 dark:text-green-300 px-2 py-0.5 rounded-full font-bold uppercase tracking-tighter">Đang chọn</span>}
                                 </div>
+                                <p className="text-[10px] text-gray-400 line-clamp-1 mt-0.5">{style.description}</p>
                               </div>
-                            );
-                          })}
-                        </div>
-                      </div>
-                    )}
+                            </div>
+                          );
+                        })
+                      ) : (
+                        <div className="p-8 text-center text-gray-400 italic text-sm">Không tìm thấy phong cách nào khớp.</div>
+                      )}
+                    </div>
                   </div>
                 </div>
                 
-                <div className="mt-auto pt-6">
-                  <div className="bg-green-50 dark:bg-green-900/10 p-5 rounded-2xl border border-green-100 dark:border-green-900/20">
-                    <p className="text-xs text-green-700 dark:text-green-300 font-medium leading-relaxed italic">
+                <div className="mt-6 flex-shrink-0">
+                  <div className="bg-green-50 dark:bg-green-900/10 p-4 rounded-2xl border border-green-100 dark:border-green-900/20">
+                    <p className="text-[11px] text-green-700 dark:text-green-300 font-medium leading-relaxed italic">
                       "Hệ thống sẽ tự động thêm các câu lệnh bổ trợ vào kịch bản để đảm bảo kết quả giống hệt phong cách mẫu này."
                     </p>
                   </div>

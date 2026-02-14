@@ -15,6 +15,7 @@ import { VersionHistoryModal } from './components/VersionHistoryModal';
 import { SunIcon, MoonIcon } from './components/icons';
 import { getPromptAndPartsForRow } from './utils/fileUtils';
 import { ChatModal } from './components/ChatModal';
+import { ApiKeyManager } from './components/ApiKeyManager';
 
 // Model chuyên dụng để tạo ảnh, tách biệt hoàn toàn với model xử lý văn bản
 const IMAGE_GEN_MODEL = 'gemini-2.5-flash-image';
@@ -66,7 +67,15 @@ export default function App() {
   const [theme, setTheme] = useState(localStorage.getItem('theme') || 'dark');
   const [videoPromptNote, setVideoPromptNote] = useState('');
   const [isProcessingScript, setIsProcessingScript] = useState(false);
-  const [selectedModel, setSelectedModel] = useState<GeminiModel>('gemini-3-pro-preview');
+  const [selectedModel, setSelectedModel] = useState<GeminiModel>(() => {
+    return (localStorage.getItem('selected_gemini_model') as GeminiModel) || 'gemini-3-pro-preview';
+  });
+
+  const [isApiKeyManagerOpen, setIsApiKeyManagerOpen] = useState(false);
+  const [apiKeys, setApiKeys] = useState<string[]>(() => {
+    const saved = localStorage.getItem('user_api_keys');
+    return saved ? JSON.parse(saved) : [];
+  });
 
   const [chatState, setChatState] = useState<'closed' | 'open' | 'minimized'>('closed');
   const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
@@ -82,12 +91,24 @@ export default function App() {
     else document.documentElement.classList.remove('dark');
     localStorage.setItem('theme', theme);
   }, [theme]);
+
+  const handleUpdateApiKeys = (keys: string[]) => {
+    setApiKeys(keys);
+    localStorage.setItem('user_api_keys', JSON.stringify(keys));
+  };
+
+  const handleUpdateModel = (model: GeminiModel) => {
+    setSelectedModel(model);
+    localStorage.setItem('selected_gemini_model', model);
+  };
   
   const toggleTheme = () => setTheme(prevTheme => prevTheme === 'dark' ? 'light' : 'dark');
 
   const getAiInstance = useCallback(() => {
-    return new GoogleGenAI({ apiKey: process.env.API_KEY || '' });
-  }, []);
+    // Ưu tiên key người dùng nhập vào nếu có, nếu không dùng key hệ thống
+    const key = apiKeys.length > 0 ? apiKeys[0] : (process.env.API_KEY || '');
+    return new GoogleGenAI({ apiKey: key });
+  }, [apiKeys]);
 
   useEffect(() => {
     if (tableData.length > 0) {
@@ -161,7 +182,7 @@ export default function App() {
       const systemInstruction = `Bạn là một chuyên gia kịch bản. Chuyển kịch bản thành bảng phân cảnh 5 cột Markdown: STT, Kịch bản Anh, Kịch bản Việt, Tóm tắt, Prompt tiếng Anh chi tiết. Không thêm văn bản thừa.`;
 
       const response = await ai.models.generateContent({
-        model: selectedModel, // Sử dụng model người dùng chọn cho xử lý văn bản
+        model: selectedModel, 
         contents: `${systemInstruction}\n\nKịch bản thô: "${scriptText}"`,
       });
 
@@ -209,7 +230,7 @@ export default function App() {
       
       const ai = getAiInstance();
       const response = await ai.models.generateContent({ 
-        model: IMAGE_GEN_MODEL, // LUÔN LUÔN dùng model image gen cố định
+        model: IMAGE_GEN_MODEL, 
         contents: { parts: parts } 
       });
       
@@ -248,10 +269,8 @@ export default function App() {
         return;
     }
 
-    // Xử lý tuần tự từng hàng một để tránh lỗi 429
     for (let i = 0; i < rowsToProcess.length; i++) {
         await generateImage(rowsToProcess[i].id);
-        // Tăng khoảng nghỉ giữa các yêu cầu lên 10-12 giây để đảm bảo an toàn cho quota
         await delay(10000 + Math.random() * 2000); 
     }
   }, [tableData, generateImage]);
@@ -266,7 +285,6 @@ export default function App() {
     try {
         const ai = getAiInstance();
         const parts = [{ inlineData: { data: mainAsset.split(',')[1], mimeType: 'image/png' } }, { text: `Từ kịch bản [${row.originalRow[2]}] hãy viết Prompt Video tiếng Anh dài 300 chữ mô tả chuyển động camera 8 giây. ${videoPromptNote}` }];
-        // Sử dụng model người dùng chọn cho tác vụ xử lý văn bản
         const responseStream = await ai.models.generateContentStream({ model: selectedModel, contents: { parts } });
         for await (const chunk of responseStream) {
             setTableData(prevData => prevData.map(r => r.id === rowId ? { ...r, videoPrompt: (r.videoPrompt || '') + (chunk.text || '') } : r));
@@ -317,7 +335,7 @@ export default function App() {
           <div className="flex flex-wrap justify-between items-center gap-x-6 gap-y-3">
             <h1 onClick={handleResetApp} className="text-2xl font-bold tracking-wider gradient-text cursor-pointer">StudyAI86</h1>
             <div className="flex items-center flex-wrap justify-end gap-2">
-               <button onClick={() => setChatState('open')} className="flex-shrink-0 h-10 font-bold py-2 px-4 rounded-lg bg-green-600 text-white hover:bg-green-700 transition-colors shadow-sm">
+               <button onClick={() => setIsApiKeyManagerOpen(true)} className="flex-shrink-0 h-10 font-bold py-2 px-4 rounded-lg bg-green-600 text-white hover:bg-green-700 transition-colors shadow-sm">
                 API & Model
               </button>
                <button onClick={() => createProjectAssetsZip(tableData, `images-assets.zip`)} className="flex-shrink-0 h-10 font-semibold py-2 px-4 rounded-lg bg-gray-200 dark:bg-[#0f3a29] text-gray-800 dark:text-green-300 border border-gray-300 dark:border-green-700 hover:bg-orange-100 hover:text-orange-700 transition-colors whitespace-nowrap shadow-sm">
@@ -361,7 +379,15 @@ export default function App() {
       <ConfirmationModal isOpen={!!confirmation} message={confirmation?.message || ''} onConfirm={() => confirmation?.onConfirm()} onClose={() => setConfirmation(null)} />
       <VersionHistoryModal isOpen={!!historyRow} rowData={historyRow ? tableData.find(r => r.id === historyRow.id) : null} onClose={() => setHistoryRow(null)} onSetMain={handleSetMainImage} onDownloadAll={handleDownloadRowAssets} />
       
-      {/* Tích hợp cửa sổ Cấu hình API và Model vào ChatModal hoặc tạo một Modal riêng biệt nếu cần */}
+      <ApiKeyManager 
+        isOpen={isApiKeyManagerOpen} 
+        onClose={() => setIsApiKeyManagerOpen(false)} 
+        apiKeys={apiKeys} 
+        setApiKeys={handleUpdateApiKeys} 
+        selectedModel={selectedModel} 
+        onSelectModel={handleUpdateModel} 
+      />
+
       <ChatModal isOpen={chatState === 'open'} onClose={() => setChatState('closed')} onMinimize={() => setChatState('minimized')} messages={chatMessages} onSendMessage={handleSendMessageToAI} isAiReplying={isAiReplying} onPresentScript={() => {}} />
     </>
   );
