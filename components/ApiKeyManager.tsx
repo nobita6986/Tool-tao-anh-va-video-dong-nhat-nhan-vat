@@ -57,8 +57,6 @@ export const ApiKeyManager: React.FC<ApiKeyManagerProps> = ({ isOpen, onClose, a
     } else setValidationStatus('invalid');
   };
 
-  const maskKey = (key: string) => key.length <= 8 ? '****' : `${key.substring(0, 4)}...${key.substring(key.length - 4)}`;
-
   return (
     <div className="fixed inset-0 bg-black bg-opacity-75 flex justify-center items-center z-[100] p-4" onClick={onClose}>
       <div className="bg-white dark:bg-[#0b2b1e] border border-gray-200 dark:border-[#1f4d3a] p-8 rounded-xl space-y-6 max-w-2xl w-full" onClick={(e) => e.stopPropagation()}>
@@ -85,8 +83,8 @@ export const ApiKeyManager: React.FC<ApiKeyManagerProps> = ({ isOpen, onClose, a
                 <div className="space-y-2 max-h-40 overflow-y-auto pr-2 mb-4 scrollbar-thin">
                     {apiKeys.map((key, idx) => (
                         <div key={idx} className="flex items-center justify-between bg-gray-50 dark:bg-[#020a06] p-2 rounded border border-gray-200 dark:border-[#1f4d3a]">
-                            <span className="font-mono text-xs text-gray-600 dark:text-gray-400">{maskKey(key)}</span>
-                            <button onClick={() => setApiKeys(apiKeys.filter((_, i) => i !== idx))} className="text-red-500 text-xs font-bold hover:text-red-600 transition-colors">Xóa</button>
+                            <span className="font-mono text-xs text-gray-600 dark:text-gray-400 break-all">{key}</span>
+                            <button onClick={() => setApiKeys(apiKeys.filter((_, i) => i !== idx))} className="text-red-500 text-xs font-bold hover:text-red-600 transition-colors ml-4 flex-shrink-0">Xóa</button>
                         </div>
                     ))}
                     {apiKeys.length === 0 && <p className="text-xs text-gray-500 text-center italic py-4">Chưa có key nào. Ứng dụng sẽ dùng key mặc định hệ thống.</p>}
@@ -94,7 +92,7 @@ export const ApiKeyManager: React.FC<ApiKeyManagerProps> = ({ isOpen, onClose, a
 
                 <div className="flex gap-2">
                     <input
-                      type="password"
+                      type="text"
                       value={newKey}
                       onChange={(e) => setNewKey(e.target.value)}
                       placeholder="Nhập API Key mới..."

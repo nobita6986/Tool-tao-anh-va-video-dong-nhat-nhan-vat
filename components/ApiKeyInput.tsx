@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { CheckCircleIcon, XCircleIcon } from './icons';
 
@@ -19,7 +20,7 @@ export const ApiKeyInput: React.FC<ApiKeyInputProps> = ({ apiKey, setApiKey, api
         {/* FIX: The 'title' prop was causing a type error. Wrapped the icon in a span to provide the title/tooltip. */}
         return <span title="API Key is valid"><CheckCircleIcon className="w-6 h-6 text-green-400" /></span>;
       case 'invalid':
-        {/* FIX: The 'title' prop was causing a type error. Wrapped the icon in a span to provide the title/tooltip. */}
+        {/* FIX: The 'title' prop was gây ra lỗi type. Wrapped the icon in a span to provide the title/tooltip. */}
         return <span title="API Key is invalid or failed to validate"><XCircleIcon className="w-6 h-6 text-red-400" /></span>;
       default:
         return null;
@@ -46,7 +47,7 @@ export const ApiKeyInput: React.FC<ApiKeyInputProps> = ({ apiKey, setApiKey, api
         <div className="relative">
           <input
             id="api-key-input"
-            type="password"
+            type="text"
             value={apiKey}
             onChange={(e) => setApiKey(e.target.value)}
             placeholder="Nhập API Key..."

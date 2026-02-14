@@ -17,7 +17,7 @@ import { getPromptAndPartsForRow } from './utils/fileUtils';
 import { ChatModal } from './components/ChatModal';
 import { ApiKeyManager } from './components/ApiKeyManager';
 
-// Model chuyên dụng để tạo ảnh, tách biệt hoàn toàn với model xử lý văn bản
+// Model chuyên dụng để tạo ảnh
 const IMAGE_GEN_MODEL = 'gemini-2.5-flash-image';
 
 const normalizeName = (name: string): string => {
@@ -68,7 +68,8 @@ export default function App() {
   const [videoPromptNote, setVideoPromptNote] = useState('');
   const [isProcessingScript, setIsProcessingScript] = useState(false);
   const [selectedModel, setSelectedModel] = useState<GeminiModel>(() => {
-    return (localStorage.getItem('selected_gemini_model') as GeminiModel) || 'gemini-3-pro-preview';
+    // Chuyển mặc định sang flash để tránh lỗi 429
+    return (localStorage.getItem('selected_gemini_model') as GeminiModel) || 'gemini-3-flash-preview';
   });
 
   const [isApiKeyManagerOpen, setIsApiKeyManagerOpen] = useState(false);
@@ -104,10 +105,16 @@ export default function App() {
   
   const toggleTheme = () => setTheme(prevTheme => prevTheme === 'dark' ? 'light' : 'dark');
 
-  const getAiInstance = useCallback(() => {
-    // Ưu tiên key người dùng nhập vào nếu có, nếu không dùng key hệ thống
-    const key = apiKeys.length > 0 ? apiKeys[0] : (process.env.API_KEY || '');
-    return new GoogleGenAI({ apiKey: key });
+  // Hàm lấy instance AI có hỗ trợ xoay vòng Key
+  const getAiInstance = useCallback((keyIndex = 0) => {
+    const availableKeys = apiKeys.length > 0 ? apiKeys : [process.env.API_KEY || ''];
+    const safeIndex = keyIndex % availableKeys.length;
+    const key = availableKeys[safeIndex];
+    return {
+        ai: new GoogleGenAI({ apiKey: key }),
+        keyCount: availableKeys.length,
+        currentIndex: safeIndex
+    };
   }, [apiKeys]);
 
   useEffect(() => {
@@ -175,46 +182,56 @@ export default function App() {
 
   const handleDocUpload = useCallback(async (file: File) => {
     setIsProcessingScript(true);
-    try {
-      const scriptText = await readTextFile(file);
-      const ai = getAiInstance();
-      
-      const systemInstruction = `Bạn là một chuyên gia kịch bản. Chuyển kịch bản thành bảng phân cảnh 5 cột Markdown: STT, Kịch bản Anh, Kịch bản Việt, Tóm tắt, Prompt tiếng Anh chi tiết. Không thêm văn bản thừa.`;
+    
+    const runProcessing = async (keyIdx = 0): Promise<void> => {
+        try {
+            const scriptText = await readTextFile(file);
+            const { ai, keyCount } = getAiInstance(keyIdx);
+            
+            const systemInstruction = `Bạn là một chuyên gia kịch bản. Chuyển kịch bản thành bảng phân cảnh 5 cột Markdown: STT, Kịch bản Anh, Kịch bản Việt, Tóm tắt, Prompt tiếng Anh chi tiết. Không thêm văn bản thừa.`;
 
-      const response = await ai.models.generateContent({
-        model: selectedModel, 
-        contents: `${systemInstruction}\n\nKịch bản thô: "${scriptText}"`,
-      });
+            const response = await ai.models.generateContent({
+                model: selectedModel, 
+                contents: `${systemInstruction}\n\nKịch bản thô: "${scriptText}"`,
+            });
 
-      const tableRows = parseMarkdownTables(response.text || '');
-      if (tableRows.length === 0) throw new Error("AI không tạo được bảng kịch bản.");
+            const tableRows = parseMarkdownTables(response.text || '');
+            if (tableRows.length === 0) throw new Error("AI không tạo được bảng kịch bản.");
 
-      const newTableData: TableRowData[] = tableRows.map((cols, index) => {
-        const stt = cols[0] || String(index + 1);
-        const id = parseInt(String(stt).replace(/[^0-9]/g, ''), 10) || (index + 1);
-        return {
-            id,
-            originalRow: [stt, cols[1] || '', cols[2] || '', cols[3] || '', cols[4] || ''],
-            contextPrompt: cols[4] || '',
-            selectedCharacterIndices: getCharacterIndicesFromStt(stt, characters, defaultCharacterIndex),
-            generatedImages: [],
-            mainImageIndex: -1,
-            isGenerating: false,
-            error: null,
-            videoPrompt: '',
-            isGeneratingPrompt: false
-        };
-      });
+            const newTableData: TableRowData[] = tableRows.map((cols, index) => {
+                const stt = cols[0] || String(index + 1);
+                const id = parseInt(String(stt).replace(/[^0-9]/g, ''), 10) || (index + 1);
+                return {
+                    id,
+                    originalRow: [stt, cols[1] || '', cols[2] || '', cols[3] || '', cols[4] || ''],
+                    contextPrompt: cols[4] || '',
+                    selectedCharacterIndices: getCharacterIndicesFromStt(stt, characters, defaultCharacterIndex),
+                    generatedImages: [],
+                    mainImageIndex: -1,
+                    isGenerating: false,
+                    error: null,
+                    videoPrompt: '',
+                    isGeneratingPrompt: false
+                };
+            });
+            setTableData(newTableData);
+        } catch (error: any) {
+            // Nếu lỗi 429 và còn Key khác, thử Key tiếp theo
+            const { keyCount } = getAiInstance();
+            if (error.message.includes('429') && keyIdx < keyCount - 1) {
+                console.warn(`Key ${keyIdx} hết hạn mức, đang thử Key ${keyIdx + 1}...`);
+                return runProcessing(keyIdx + 1);
+            }
+            alert(`Lỗi xử lý kịch bản: ${error.message}`);
+        } finally {
+            setIsProcessingScript(false);
+        }
+    };
 
-      setTableData(newTableData);
-    } catch (error: any) {
-      alert(`Lỗi xử lý kịch bản: ${error.message}`);
-    } finally {
-      setIsProcessingScript(false);
-    }
+    await runProcessing(0);
   }, [characters, defaultCharacterIndex, getAiInstance, selectedModel]);
 
-  const generateImage = useCallback(async (rowId: number, adjustments?: AdjustmentOptions, retryCount = 0) => {
+  const generateImage = useCallback(async (rowId: number, adjustments?: AdjustmentOptions, retryCount = 0, keyIdx = 0) => {
     setTableData(prevData => prevData.map(r => r.id === rowId ? { ...r, isGenerating: true, error: null } : r));
 
     try {
@@ -228,7 +245,7 @@ export default function App() {
         characters: currentChars, defaultCharacterIndex: currentDef, adjustments 
       });
       
-      const ai = getAiInstance();
+      const { ai, keyCount } = getAiInstance(keyIdx);
       const response = await ai.models.generateContent({ 
         model: IMAGE_GEN_MODEL, 
         contents: { parts: parts } 
@@ -248,16 +265,22 @@ export default function App() {
       } else throw new Error("Không nhận được dữ liệu ảnh.");
     } catch (err: any) {
       const errorMessage = err.message || "Lỗi không xác định";
+      const { keyCount } = getAiInstance();
       
-      if (errorMessage.includes("429") && retryCount < 5) {
-          const backoffTime = 10000 * (retryCount + 1);
-          setTableData(prev => prev.map(r => r.id === rowId ? { ...r, error: `Hệ thống bận, đang chờ xử lý lại sau ${backoffTime/1000}s...` } : r));
-          await delay(backoffTime);
-          return generateImage(rowId, adjustments, retryCount + 1);
+      // Xoay vòng Key nếu gặp lỗi 429
+      if (errorMessage.includes("429")) {
+          if (keyIdx < keyCount - 1) {
+              return generateImage(rowId, adjustments, retryCount, keyIdx + 1);
+          } else if (retryCount < 3) {
+              const backoffTime = 5000 * (retryCount + 1);
+              setTableData(prev => prev.map(r => r.id === rowId ? { ...r, error: `Hết hạn mức toàn bộ Key, chờ ${backoffTime/1000}s...` } : r));
+              await delay(backoffTime);
+              return generateImage(rowId, adjustments, retryCount + 1, 0); // Quay lại key đầu tiên sau khi đợi
+          }
       }
 
       let finalError = errorMessage;
-      if (finalError.includes("429")) finalError = "Hạn mức API đã hết. Hãy đợi vài phút rồi thử lại.";
+      if (finalError.includes("429")) finalError = "Hạn mức API đã hết trên tất cả các Key. Hãy nâng cấp hoặc đợi vài phút.";
       setTableData(prev => prev.map(r => r.id === rowId ? { ...r, error: `Lỗi: ${finalError}`, isGenerating: false } : r));
     }
   }, [getAiInstance]);
@@ -271,11 +294,11 @@ export default function App() {
 
     for (let i = 0; i < rowsToProcess.length; i++) {
         await generateImage(rowsToProcess[i].id);
-        await delay(10000 + Math.random() * 2000); 
+        await delay(3000); // Giảm delay vì đã có xoay vòng Key
     }
   }, [tableData, generateImage]);
 
-  const generateVideoPromptForRow = useCallback(async (rowId: number) => {
+  const generateVideoPromptForRow = useCallback(async (rowId: number, keyIdx = 0) => {
     const rowIndex = tableData.findIndex(row => row.id === rowId);
     if (rowIndex === -1) return;
     const row = tableData[rowIndex];
@@ -283,13 +306,17 @@ export default function App() {
     if (!mainAsset) { handleUpdateRow({ ...row, error: "Cần có ảnh chính để tạo prompt video." }); return; }
     setTableData(prevData => prevData.map(r => r.id === rowId ? { ...r, isGeneratingPrompt: true, error: null, videoPrompt: '' } : r));
     try {
-        const ai = getAiInstance();
+        const { ai, keyCount } = getAiInstance(keyIdx);
         const parts = [{ inlineData: { data: mainAsset.split(',')[1], mimeType: 'image/png' } }, { text: `Từ kịch bản [${row.originalRow[2]}] hãy viết Prompt Video tiếng Anh dài 300 chữ mô tả chuyển động camera 8 giây. ${videoPromptNote}` }];
         const responseStream = await ai.models.generateContentStream({ model: selectedModel, contents: { parts } });
         for await (const chunk of responseStream) {
             setTableData(prevData => prevData.map(r => r.id === rowId ? { ...r, videoPrompt: (r.videoPrompt || '') + (chunk.text || '') } : r));
         }
     } catch (err: any) {
+        const { keyCount } = getAiInstance();
+        if (err.message.includes('429') && keyIdx < keyCount - 1) {
+            return generateVideoPromptForRow(rowId, keyIdx + 1);
+        }
         handleUpdateRow({ ...tableData.find(r => r.id === rowId)!, error: `Lỗi: ${err.message}` });
     } finally { setTableData(prevData => prevData.map(r => r.id === rowId ? { ...r, isGeneratingPrompt: false } : r)); }
   }, [tableData, handleUpdateRow, videoPromptNote, getAiInstance, selectedModel]);
@@ -304,17 +331,17 @@ export default function App() {
 
   const handleResetApp = () => window.location.reload();
 
-  const handleSendMessageToAI = async (prompt: string) => {
+  const handleSendMessageToAI = async (prompt: string, keyIdx = 0) => {
     const updatedMessages: ChatMessage[] = [...chatMessages, { role: 'user', content: prompt }];
-    setChatMessages(updatedMessages);
+    if (keyIdx === 0) setChatMessages(updatedMessages);
     setIsAiReplying(true);
     try {
-        const ai = getAiInstance();
+        const { ai, keyCount } = getAiInstance(keyIdx);
         const history = updatedMessages.slice(0, -1).map(msg => ({ role: msg.role, parts: [{ text: msg.content }] }));
         const chat = ai.chats.create({ model: selectedModel, history: history });
         const responseStream = await chat.sendMessageStream({ message: prompt });
         let fullResponse = '';
-        setChatMessages(prev => [...prev, { role: 'model', content: '' }]);
+        if (keyIdx === 0) setChatMessages(prev => [...prev, { role: 'model', content: '' }]);
         for await (const chunk of responseStream) {
             fullResponse += chunk.text || '';
             setChatMessages(prev => {
@@ -324,6 +351,10 @@ export default function App() {
             });
         }
     } catch (err: any) {
+        const { keyCount } = getAiInstance();
+        if (err.message.includes('429') && keyIdx < keyCount - 1) {
+            return handleSendMessageToAI(prompt, keyIdx + 1);
+        }
         setChatMessages(prev => [...prev, { role: 'model', content: `Lỗi: ${err.message}` }]);
     } finally { setIsAiReplying(false); }
   };
@@ -366,7 +397,10 @@ export default function App() {
               tableData={tableData}
               selectedModel={selectedModel}
               onAutoFillRows={handleAutoFillCharacters}
-              getAiInstance={() => ({ ai: getAiInstance(), rotate: () => {} })}
+              getAiInstance={(idx) => { 
+                  const { ai } = getAiInstance(idx); 
+                  return { ai, rotate: () => {} }; 
+              }}
             />
             <ResultsView selectedStyle={selectedStyle} tableData={tableData} characters={characters} defaultCharacterIndex={defaultCharacterIndex} onBack={handleBackToStyles} onDocUpload={handleDocUpload} onUpdateRow={handleUpdateRow} onGenerateImage={generateImage} onGenerateAllImages={handleGenerateAllImages} onGenerateVideoPrompt={generateVideoPromptForRow} onGenerateAllVideoPrompts={() => tableData.forEach(r => generateVideoPromptForRow(r.id))} onDownloadAll={() => createProjectAssetsZip(tableData, `images_assets.zip`)} onViewImage={setViewingImage} onStartRemake={setRemakingRow} onOpenHistory={setHistoryRow} onSendToVideo={(id) => generateVideoPromptForRow(id)} isProcessing={isProcessingScript} />
           </div>
