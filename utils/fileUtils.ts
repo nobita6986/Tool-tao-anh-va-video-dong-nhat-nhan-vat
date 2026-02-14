@@ -124,20 +124,23 @@ export const getPromptForRow = (row: TableRowData, selectedStyle: Style, charact
                 : `\n   - **Attire:** Match the clothing style in the reference image.`;
 
             characterDetails += `\n🔴 **TARGET CHARACTER: ${character.name}**\n` +
-                `   - **SOURCE:** Use the attached image labeled or associated with "${character.name}".\n` +
-                `   - **FACE/IDENTITY:** STRICTLY COPY the face, hair, and facial structure from the reference image. The output character MUST look exactly like the reference.\n` +
+                `   - **SOURCE:** Use the provided reference image(s) labeled for "${character.name}".\n` +
+                `   - **FACE/IDENTITY:** STRICTLY COPY the facial features and structure from the reference image. The identity must be unmistakable.\n` +
+                `   - **EXPRESSION:** ADAPT the facial expression to match the emotional context of the scene while maintaining the face identity.\n` +
                 `   - **BODY TYPE:** Match the body build and age from the reference.${userStyleInstruction}\n`;
         });
         
         let template = originalTemplate;
         if (characterNames.length > 0) {
-             const multiCharacterInstruction = `**⚠️ CRITICAL INSTRUCTION: CHARACTER CONSISTENCY REQUIRED ⚠️**
+             const multiCharacterInstruction = `**⚠️ CRITICAL: CHARACTER CONSISTENCY PROTOCOL ⚠️**
 I have provided reference images for the following characters: ${characterNames.join(', ')}.
 
 **MANDATORY RULES FOR AI:**
-1.  **FACE LOCK:** You MUST use the provided reference images as the absolute truth for the character's Face, Identity, and Hairstyle. Do not create a random face.
-2.  **STYLE ADHERENCE:** You MUST follow the specific style/clothing descriptions provided below for each character.
-3.  **NO HALLUCINATIONS:** Do not change the character's ethnicity, age, or key features defined in the reference.
+1.  **VISUAL FIDELITY:** You MUST generate the characters with the EXACT SAME facial features and identity as the reference images.
+2.  **IDENTITY LOCK:** Do NOT create generic faces. The face must be recognizable as the specific person in the reference.
+3.  **DYNAMIC EXPRESSIONS:** While the face identity is locked, you MUST adapt the facial expression and emotion to match the scene description/context.
+4.  **STYLE COMPLIANCE:** Follow the user's specific clothing/style description for each character found in the Character Data below.
+5.  **NO DEVIATION:** Do not alter age, ethnicity, or key physical traits defined in the reference.
 
 **CHARACTER DATA:**
 ${characterDetails}
@@ -211,11 +214,15 @@ export const getPromptAndPartsForRow = ({
 
     const selectedCharIndices = row.selectedCharacterIndices;
     
-    // Add Character Reference Images
-    if (selectedCharIndices.length > 0 && selectedCharIndices[0] >= 0) { 
+    // Interleave Character Reference Images with Label Text
+    if (selectedCharIndices.length > 0 && selectedCharIndices[0] >= 0) {
+        parts.push({ text: "**REFERENCE MATERIAL:**\n" }); 
         selectedCharIndices.forEach((charIndex) => {
             const character = characters[charIndex];
             if (character && character.images.length > 0) {
+                // Add label before images to help AI identify who is who
+                parts.push({ text: `\n[REFERENCE IMAGE FOR: "${character.name}"]` });
+                
                 character.images.forEach((imgDataUrl) => {
                     const [header, base64Data] = imgDataUrl.split(',');
                     const mimeType = header.match(/data:(.*);base64/)?.[1] || 'image/png';
@@ -228,10 +235,12 @@ export const getPromptAndPartsForRow = ({
                 });
             }
         });
+        parts.push({ text: "\n**END OF REFERENCES.**\n\n" }); 
     } else { 
         // Add Style Reference Image if no character is selected
         const refCharacter = characters.find((c) => c && c.images.length > 0);
         if (refCharacter && refCharacter.images.length > 0) {
+            parts.push({ text: "**STYLE REFERENCE IMAGE:**" });
             const imgDataUrl = refCharacter.images[0]; 
             const [header, base64Data] = imgDataUrl.split(',');
             const mimeType = header.match(/data:(.*);base64/)?.[1] || 'image/png';
