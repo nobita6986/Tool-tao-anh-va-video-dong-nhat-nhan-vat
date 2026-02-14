@@ -68,7 +68,7 @@ Ví dụ:
       </div>
 
       <div className="bg-white dark:bg-[#0b2b1e] border border-gray-200 dark:border-[#1f4d3a] rounded-[32px] shadow-2xl overflow-hidden">
-        <div className="grid md:grid-cols-2 min-h-[580px] items-stretch">
+        <div className="grid md:grid-cols-2 items-stretch">
           {/* Left Side: Style Library / Custom Prompt */}
           <div className="p-10 flex flex-col border-r border-gray-100 dark:border-gray-800">
             <div className="flex gap-2 p-1.5 bg-gray-100 dark:bg-[#020a06] rounded-2xl mb-6 flex-shrink-0">
@@ -87,8 +87,8 @@ Ví dụ:
             </div>
 
             {!showCustom ? (
-              <div className="flex flex-col flex-grow">
-                <div className="space-y-4 flex-grow flex flex-col min-h-0">
+              <div className="flex flex-col h-full">
+                <div className="space-y-4 flex flex-col h-full">
                   <div className="relative flex-shrink-0">
                     <label className="block text-[10px] font-black uppercase text-gray-400 mb-2 tracking-[0.2em]">Tìm kiếm phong cách</label>
                     <input 
@@ -100,9 +100,10 @@ Ví dụ:
                     />
                   </div>
 
-                  <div className="flex-grow flex flex-col min-h-0">
+                  <div className="flex flex-col">
                     <label className="block text-[10px] font-black uppercase text-gray-400 mb-2 tracking-[0.2em]">Danh sách phong cách</label>
-                    <div className="flex-grow overflow-y-auto custom-scrollbar border border-gray-100 dark:border-gray-800 rounded-2xl bg-gray-50/50 dark:bg-[#020a06]/30">
+                    {/* H- [252px] is calculated to show exactly 3 items (each ~84px including padding and border) */}
+                    <div className="h-[252px] overflow-y-auto custom-scrollbar border border-gray-100 dark:border-gray-800 rounded-2xl bg-gray-50/50 dark:bg-[#020a06]/30">
                       {filteredStyles.length > 0 ? (
                         filteredStyles.map((style) => {
                           const originalIndex = STYLES.indexOf(style);
@@ -131,7 +132,7 @@ Ví dụ:
                   </div>
                 </div>
                 
-                <div className="mt-6 flex-shrink-0">
+                <div className="mt-6">
                   <div className="bg-green-50 dark:bg-green-900/10 p-4 rounded-2xl border border-green-100 dark:border-green-900/20">
                     <p className="text-[11px] text-green-700 dark:text-green-300 font-medium leading-relaxed italic">
                       "Hệ thống sẽ tự động thêm các câu lệnh bổ trợ vào kịch bản để đảm bảo kết quả giống hệt phong cách mẫu này."
@@ -140,7 +141,7 @@ Ví dụ:
                 </div>
               </div>
             ) : (
-              <div className="flex flex-col flex-grow space-y-4 animate-in fade-in slide-in-from-right-4 duration-300">
+              <div className="flex flex-col h-full space-y-4 animate-in fade-in slide-in-from-right-4 duration-300">
                 <label className="block text-[10px] font-black uppercase text-gray-400 mb-1 tracking-[0.2em] flex-shrink-0">Prompt phong cách cá nhân</label>
                 <textarea
                   value={customPrompt}
@@ -160,7 +161,7 @@ Ví dụ:
           </div>
 
           {/* Right Side: High-Quality Preview Card */}
-          <div className="bg-gray-50 dark:bg-[#020a06]/50 p-10 flex flex-col justify-center items-center">
+          <div className="bg-gray-50 dark:bg-[#020a06]/50 p-10 flex flex-col justify-center items-center h-full">
             <div className="w-full max-w-[320px] h-full flex flex-col justify-between">
               <div className="aspect-[4/5] rounded-[32px] overflow-hidden shadow-2xl border-8 border-white dark:border-gray-800 group relative mb-6">
                 <img 
