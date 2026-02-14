@@ -337,7 +337,7 @@ Kịch bản thô: "${scriptText}"`;
       <header className="sticky top-0 z-50 bg-white/80 dark:bg-[#020a06]/80 backdrop-blur-md border-b border-gray-200 dark:border-[#1f4d3a] py-3 px-6 header-bg">
         <div className="container mx-auto">
           <div className="flex flex-wrap justify-between items-center gap-x-6 gap-y-3">
-            <h1 onClick={handleResetApp} className="text-2xl font-bold uppercase tracking-wider gradient-text cursor-pointer">Pro Studio</h1>
+            <h1 onClick={handleResetApp} className="text-2xl font-bold tracking-wider gradient-text cursor-pointer">StudyAI86</h1>
             <div className="flex items-center flex-wrap justify-end gap-2">
                <button onClick={() => setIsApiKeyManagerOpen(true)} className="flex-shrink-0 h-10 font-bold py-2 px-4 rounded-lg bg-green-100 text-green-700 dark:bg-[#0f3a29] dark:text-green-300 border border-green-700 hover:bg-orange-100 hover:text-orange-700 transition-colors whitespace-nowrap shadow-sm">
                 ⚙️ API & Model
