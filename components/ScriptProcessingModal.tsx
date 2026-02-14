@@ -11,12 +11,16 @@ interface ScriptProcessingModalProps {
 
 export const ScriptProcessingModal: React.FC<ScriptProcessingModalProps> = ({ isOpen, onClose, onConfirm }) => {
   const [method, setMethod] = useState<SegmentationMethod>('current');
-  const [customRule, setCustomRule] = useState('');
+  const [partCount, setPartCount] = useState('');
 
   if (!isOpen) return null;
 
   const handleConfirm = () => {
-    onConfirm(method, method === 'custom' ? customRule : undefined);
+    let rule = undefined;
+    if (method === 'custom') {
+        rule = `Chia toàn bộ kịch bản thành đúng ${partCount} phân cảnh (Scene).`;
+    }
+    onConfirm(method, rule);
     onClose();
   };
 
@@ -63,23 +67,27 @@ export const ScriptProcessingModal: React.FC<ScriptProcessingModalProps> = ({ is
             className={`flex items-center gap-4 p-4 rounded-2xl border-2 cursor-pointer transition-all ${method === 'custom' ? 'bg-green-50 dark:bg-green-900/20 border-green-500 ring-4 ring-green-500/10' : 'bg-gray-50 dark:bg-[#020a06] border-gray-100 dark:border-gray-800 hover:border-green-300'}`}
           >
             <div className={`w-12 h-12 rounded-xl flex items-center justify-center text-2xl ${method === 'custom' ? 'bg-green-500 text-white' : 'bg-gray-200 dark:bg-gray-800 text-gray-500'}`}>
-              🛠️
+              🔢
             </div>
             <div className="flex-grow">
-              <p className={`font-black text-sm uppercase ${method === 'custom' ? 'text-green-700 dark:text-green-400' : 'text-gray-900 dark:text-white'}`}>Tùy chỉnh logic</p>
-              <p className="text-[10px] text-gray-400 mt-0.5">Tự nhập quy tắc ngắt đoạn của riêng bạn để AI tuân thủ.</p>
+              <p className={`font-black text-sm uppercase ${method === 'custom' ? 'text-green-700 dark:text-green-400' : 'text-gray-900 dark:text-white'}`}>Chia theo số lượng</p>
+              <p className="text-[10px] text-gray-400 mt-0.5">AI sẽ tự động chia kịch bản thành đúng số lượng phân cảnh bạn yêu cầu.</p>
             </div>
           </div>
 
           {method === 'custom' && (
-            <textarea
-              autoFocus
-              value={customRule}
-              onChange={(e) => setCustomRule(e.target.value)}
-              placeholder="Ví dụ: Chia mỗi dòng khi có dấu xuống dòng, hoặc mỗi phân cảnh tối đa 2 câu..."
-              className="w-full bg-gray-50 dark:bg-[#020a06] border border-gray-200 dark:border-gray-800 rounded-2xl p-4 text-sm outline-none focus:ring-2 focus:ring-green-400 transition-all shadow-inner animate-in slide-in-from-top-2"
-              rows={3}
-            />
+            <div className="animate-in slide-in-from-top-2">
+                 <label className="block text-xs font-bold text-gray-500 dark:text-gray-400 mb-2 uppercase tracking-wide">Số lượng phân cảnh mong muốn</label>
+                 <input
+                  type="number"
+                  autoFocus
+                  min="1"
+                  value={partCount}
+                  onChange={(e) => setPartCount(e.target.value)}
+                  placeholder="Nhập số lượng (Ví dụ: 10)..."
+                  className="w-full bg-gray-50 dark:bg-[#020a06] border border-gray-200 dark:border-gray-800 rounded-2xl p-4 text-sm outline-none focus:ring-2 focus:ring-green-400 transition-all shadow-inner font-bold text-gray-900 dark:text-white"
+                />
+            </div>
           )}
         </div>
 
@@ -92,7 +100,7 @@ export const ScriptProcessingModal: React.FC<ScriptProcessingModalProps> = ({ is
           </button>
           <button 
             onClick={handleConfirm}
-            disabled={method === 'custom' && !customRule.trim()}
+            disabled={method === 'custom' && (!partCount || parseInt(partCount) <= 0)}
             className="flex-[2] py-4 bg-green-600 text-white rounded-2xl font-black uppercase tracking-widest text-xs hover:bg-orange-500 shadow-xl shadow-green-600/20 active:scale-95 transition-all disabled:opacity-50"
           >
             Bắt đầu xử lý &rarr;
