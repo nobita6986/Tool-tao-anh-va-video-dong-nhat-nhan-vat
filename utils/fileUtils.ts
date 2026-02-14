@@ -118,23 +118,31 @@ export const getPromptForRow = (row: TableRowData, selectedStyle: Style, charact
             
             characterNames.push(`"${character.name}"`);
             
-            if (character.stylePrompt) {
-                characterDetails += `+ Character <${character.name}> (Strictly follow attached Reference Image): ${character.stylePrompt}\n`;
-            } else {
-                characterDetails += `+ Character <${character.name}> (Strictly follow attached Reference Image)\n`;
-            }
+            // Tăng cường chỉ thị cho từng nhân vật cụ thể
+            const userStyleInstruction = character.stylePrompt 
+                ? `\n   - **Specific Style/Attire:** ${character.stylePrompt}` 
+                : `\n   - **Attire:** Match the clothing style in the reference image.`;
+
+            characterDetails += `\n🔴 **TARGET CHARACTER: ${character.name}**\n` +
+                `   - **SOURCE:** Use the attached image labeled or associated with "${character.name}".\n` +
+                `   - **FACE/IDENTITY:** STRICTLY COPY the face, hair, and facial structure from the reference image. The output character MUST look exactly like the reference.\n` +
+                `   - **BODY TYPE:** Match the body build and age from the reference.${userStyleInstruction}\n`;
         });
         
         let template = originalTemplate;
         if (characterNames.length > 0) {
-             const multiCharacterInstruction = `**STRICT REFERENCE REQUIRED:** 
-I have provided reference images for the following characters: ${characterNames.join(', ')}. 
-You MUST adhere strictly to their facial features, hair, age, body type, and clothing from the provided images. 
-DO NOT hallucinate new appearances. DO NOT copy the background from reference images.
-Only use the reference images for character consistency.
-Create the scene context described below.
+             const multiCharacterInstruction = `**⚠️ CRITICAL INSTRUCTION: CHARACTER CONSISTENCY REQUIRED ⚠️**
+I have provided reference images for the following characters: ${characterNames.join(', ')}.
 
-${characterDetails}`;
+**MANDATORY RULES FOR AI:**
+1.  **FACE LOCK:** You MUST use the provided reference images as the absolute truth for the character's Face, Identity, and Hairstyle. Do not create a random face.
+2.  **STYLE ADHERENCE:** You MUST follow the specific style/clothing descriptions provided below for each character.
+3.  **NO HALLUCINATIONS:** Do not change the character's ethnicity, age, or key features defined in the reference.
+
+**CHARACTER DATA:**
+${characterDetails}
+
+**SCENE CONTEXT (Apply the Art Style to this context):**`;
             
             // Replace the generic intro with our strong reference instruction
             const introRegex = /^\*\*YÊU CẦU QUAN TRỌNG:[\s\S]*?Vẽ lại nhân vật tôi gửi, với chính xác ngoại hình, trang phục nhưng customize theo phong cách sau/s;

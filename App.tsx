@@ -1,4 +1,3 @@
-
 import React, { useState, useCallback, ChangeEvent, useEffect, useRef } from 'react';
 import { GoogleGenAI } from '@google/genai';
 import { STYLES, PRESET_PROMPT_CONTEXT } from './constants';
@@ -493,7 +492,7 @@ LƯU Ý: Không thêm văn bản thừa ngoài bảng Markdown.`;
               tableData={tableData}
               selectedModel={selectedModel}
               onAutoFillRows={handleAutoFillCharacters}
-              getAiInstance={(idx) => { 
+              getAiInstance={(idx = 0) => { 
                   const { ai } = getAiInstance(idx); 
                   return { ai, rotate: () => {} }; 
               }}

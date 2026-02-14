@@ -50,11 +50,11 @@ export const CharacterManager: React.FC<CharacterManagerProps> = ({
   };
 
   const addCharacterSlot = () => {
-    setCharacters([{ name: '', images: [], stylePrompt: '' }, ...characters]);
+    // Thêm vào cuối danh sách
+    setCharacters([...characters, { name: '', images: [], stylePrompt: '' }]);
   };
 
   const removeCharacterSlot = (index: number) => {
-    if (characters.length <= 1) return;
     const newCharacters = characters.filter((_, i) => i !== index);
     setCharacters(newCharacters);
     if (defaultCharacterIndices.includes(index)) {
@@ -146,15 +146,6 @@ Kịch bản: "${scriptText.substring(0, 3000)}"`;
             </button>
           </Tooltip>
           
-          <Tooltip content="Thêm một ô nhân vật trống mới">
-            <button 
-                onClick={addCharacterSlot}
-                className="text-sm font-bold py-2 px-4 rounded-lg bg-green-600 text-white hover:bg-green-700 shadow-md transition-all active:scale-95"
-            >
-                Thêm nhân vật
-            </button>
-          </Tooltip>
-
           <Tooltip content="Quét kịch bản và tự động gán nhân vật vào từng phân cảnh dựa trên tên">
             <button 
                 onClick={onAutoFillRows}
@@ -246,6 +237,19 @@ Kịch bản: "${scriptText.substring(0, 3000)}"`;
                 </div>
               </div>
             )})}
+
+            {/* Thẻ dấu cộng để thêm nhân vật */}
+            <button
+                onClick={addCharacterSlot}
+                className="flex flex-col items-center justify-center gap-3 bg-gray-50 dark:bg-[#020a06] border-2 border-dashed border-gray-300 dark:border-[#1f4d3a] rounded-2xl p-5 hover:border-green-500 dark:hover:border-green-400 hover:bg-green-50 dark:hover:bg-green-900/10 transition-all group min-h-[320px] active:scale-95"
+            >
+                <div className="w-16 h-16 rounded-full bg-gray-200 dark:bg-gray-800 text-gray-400 group-hover:bg-green-500 group-hover:text-white flex items-center justify-center transition-colors">
+                    <span className="text-3xl font-light">+</span>
+                </div>
+                <span className="text-sm font-bold text-gray-500 group-hover:text-green-600 dark:text-gray-400 dark:group-hover:text-green-400 uppercase tracking-wide">
+                    Thêm nhân vật
+                </span>
+            </button>
           </div>
 
           <div className="mt-8 pt-6 border-t border-gray-100 dark:border-[#1f4d3a]">
