@@ -14,13 +14,10 @@ import { FileDropzone } from './components/FileDropzone';
 import { VersionHistoryModal } from './components/VersionHistoryModal';
 import { SunIcon, MoonIcon } from './components/icons';
 import { getPromptAndPartsForRow } from './utils/fileUtils';
-import { ColumnMapper } from './components/ColumnMapper';
 import { ChatModal } from './components/ChatModal';
-import { PresentScriptModal } from './components/PresentScriptModal';
-import { ChatBubble } from './components/ChatBubble';
-import { ApiKeyManager } from './components/ApiKeyManager';
 
-const IMAGE_GENERATION_COST_USD = 0.0025;
+// Model chuyên dụng để tạo ảnh, tách biệt hoàn toàn với model xử lý văn bản
+const IMAGE_GEN_MODEL = 'gemini-2.5-flash-image';
 
 const normalizeName = (name: string): string => {
   if (!name) return '';
@@ -66,33 +63,19 @@ export default function App() {
   const [remakingRow, setRemakingRow] = useState<TableRowData | null>(null);
   const [historyRow, setHistoryRow] = useState<TableRowData | null>(null);
   const [confirmation, setConfirmation] = useState<{ message: string; onConfirm: () => void } | null>(null);
-  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
   const [theme, setTheme] = useState(localStorage.getItem('theme') || 'dark');
   const [videoPromptNote, setVideoPromptNote] = useState('');
-  const [isApiKeyManagerOpen, setIsApiKeyManagerOpen] = useState(false);
   const [isProcessingScript, setIsProcessingScript] = useState(false);
-  
-  const [apiKeys, setApiKeys] = useState<string[]>(JSON.parse(localStorage.getItem('user_api_keys') || '[]'));
-  const [currentKeyIndex, setCurrentKeyIndex] = useState(0);
-  const [selectedModel, setSelectedModel] = useState<GeminiModel>((localStorage.getItem('user_selected_model') as GeminiModel) || 'gemini-3-pro-preview');
+  const [selectedModel, setSelectedModel] = useState<GeminiModel>('gemini-3-pro-preview');
 
   const [chatState, setChatState] = useState<'closed' | 'open' | 'minimized'>('closed');
   const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
   const [isAiReplying, setIsAiReplying] = useState(false);
 
-  // Use a ref to always have access to the latest state inside async callbacks
   const stateRef = useRef({ tableData, selectedStyle, characters, defaultCharacterIndex });
   useEffect(() => {
     stateRef.current = { tableData, selectedStyle, characters, defaultCharacterIndex };
   }, [tableData, selectedStyle, characters, defaultCharacterIndex]);
-
-  useEffect(() => {
-    localStorage.setItem('user_api_keys', JSON.stringify(apiKeys));
-  }, [apiKeys]);
-
-  useEffect(() => {
-    localStorage.setItem('user_selected_model', selectedModel);
-  }, [selectedModel]);
 
   useEffect(() => {
     if (theme === 'dark') document.documentElement.classList.add('dark');
@@ -102,16 +85,9 @@ export default function App() {
   
   const toggleTheme = () => setTheme(prevTheme => prevTheme === 'dark' ? 'light' : 'dark');
 
-  const getAiInstance = useCallback((): { ai: GoogleGenAI, rotate: () => void } => {
-    const keys = apiKeys.length > 0 ? apiKeys : [process.env.API_KEY || ''];
-    const idx = currentKeyIndex % keys.length;
-    const rotate = () => setCurrentKeyIndex((prev) => (prev + 1) % keys.length);
-    const apiKeyToUse = keys[idx];
-    if (!apiKeyToUse) {
-      throw new Error("Vui lòng cấu hình ít nhất một API Key trong mục 'API & Model'.");
-    }
-    return { ai: new GoogleGenAI({ apiKey: apiKeyToUse }), rotate };
-  }, [apiKeys, currentKeyIndex]);
+  const getAiInstance = useCallback(() => {
+    return new GoogleGenAI({ apiKey: process.env.API_KEY || '' });
+  }, []);
 
   useEffect(() => {
     if (tableData.length > 0) {
@@ -130,13 +106,13 @@ export default function App() {
     }
   }, [characters, defaultCharacterIndex]);
 
-  const handleCharactersChange = (newCharacters: Character[]) => { setCharacters(newCharacters); setHasUnsavedChanges(true); };
-  const handleVideoPromptNoteChange = (note: string) => { setVideoPromptNote(note); setHasUnsavedChanges(true); };
-  const handleSetDefaultCharacter = useCallback((index: number | null) => { setDefaultCharacterIndex(index); setHasUnsavedChanges(true); }, []);
-  const handleStyleSelect = useCallback((style: Style) => { setSelectedStyle(style); setHasUnsavedChanges(true); }, []);
+  const handleCharactersChange = (newCharacters: Character[]) => { setCharacters(newCharacters); };
+  const handleVideoPromptNoteChange = (note: string) => { setVideoPromptNote(note); };
+  const handleSetDefaultCharacter = useCallback((index: number | null) => { setDefaultCharacterIndex(index); }, []);
+  const handleStyleSelect = useCallback((style: Style) => { setSelectedStyle(style); }, []);
   const handleBackToStyles = () => { setSelectedStyle(null); setTableData([]); };
   
-  const handleUpdateRow = useCallback((updatedRow: TableRowData) => { setTableData(prevData => prevData.map(row => (row.id === updatedRow.id ? updatedRow : row))); setHasUnsavedChanges(true); }, []);
+  const handleUpdateRow = useCallback((updatedRow: TableRowData) => { setTableData(prevData => prevData.map(row => (row.id === updatedRow.id ? updatedRow : row))); }, []);
 
   const handleAutoFillCharacters = useCallback(() => {
     const definedCharacters = characters
@@ -169,7 +145,7 @@ export default function App() {
     });
 
     if (fillCount === 0) {
-        alert("Không tìm thấy tên nhân vật nào khớp trong kịch bản. Lưu ý: Hệ thống tìm kiếm theo tên chính xác bạn đã đặt.");
+        alert("Không tìm thấy tên nhân vật nào khớp trong kịch bản.");
     } else {
         setTableData(updatedTableData);
         alert(`Thành công! Đã cập nhật nhân vật cho ${fillCount} phân cảnh.`);
@@ -180,26 +156,17 @@ export default function App() {
     setIsProcessingScript(true);
     try {
       const scriptText = await readTextFile(file);
-      const { ai, rotate } = getAiInstance();
+      const ai = getAiInstance();
       
-      const systemInstruction = `Bạn là một chuyên gia kịch bản điện ảnh. Nhiệm vụ của bạn là nhận một kịch bản thô và chuyển đổi nó thành một bảng phân cảnh chi tiết 5 cột chuẩn xác.
-Quy trình:
-1. Chia nhỏ kịch bản thành các phân đoạn ngắn (7-15 chữ).
-2. Viết Prompt bối cảnh (Cột 5) cực kỳ chi tiết bằng tiếng Anh, mô tả bối cảnh, hành động, ánh sáng và góc máy cho AI vẽ ảnh.
-3. Tên prompt (Cột 4) là tóm tắt ngắn bằng tiếng Việt.
-4. STT (Cột 1) tăng dần 1, 2, 3...
-5. Cột 2 và 3 là kịch bản phân đoạn bằng tiếng Anh và tiếng Việt.
-
-YÊU CẦU ĐỊNH DẠNG: Chỉ trả về một bảng Markdown duy nhất, không thêm bất kỳ văn bản nào khác.
-Kịch bản thô: "${scriptText}"`;
+      const systemInstruction = `Bạn là một chuyên gia kịch bản. Chuyển kịch bản thành bảng phân cảnh 5 cột Markdown: STT, Kịch bản Anh, Kịch bản Việt, Tóm tắt, Prompt tiếng Anh chi tiết. Không thêm văn bản thừa.`;
 
       const response = await ai.models.generateContent({
-        model: selectedModel,
-        contents: systemInstruction,
+        model: selectedModel, // Sử dụng model người dùng chọn cho xử lý văn bản
+        contents: `${systemInstruction}\n\nKịch bản thô: "${scriptText}"`,
       });
 
       const tableRows = parseMarkdownTables(response.text || '');
-      if (tableRows.length === 0) throw new Error("AI không tạo được bảng kịch bản hợp lệ.");
+      if (tableRows.length === 0) throw new Error("AI không tạo được bảng kịch bản.");
 
       const newTableData: TableRowData[] = tableRows.map((cols, index) => {
         const stt = cols[0] || String(index + 1);
@@ -219,9 +186,8 @@ Kịch bản thô: "${scriptText}"`;
       });
 
       setTableData(newTableData);
-      setHasUnsavedChanges(true);
     } catch (error: any) {
-      alert(`Lỗi xử lý kịch bản: ${error.message}. Thử đổi sang model Flash để ổn định hơn.`);
+      alert(`Lỗi xử lý kịch bản: ${error.message}`);
     } finally {
       setIsProcessingScript(false);
     }
@@ -237,18 +203,13 @@ Kịch bản thô: "${scriptText}"`;
 
       const rowIndex = currentTable.findIndex(r => r.id === rowId);
       const { prompt, parts } = getPromptAndPartsForRow({ 
-        row, 
-        rowIndex, 
-        tableData: currentTable, 
-        selectedStyle: currentStyle, 
-        characters: currentChars, 
-        defaultCharacterIndex: currentDef, 
-        adjustments 
+        row, rowIndex, tableData: currentTable, selectedStyle: currentStyle, 
+        characters: currentChars, defaultCharacterIndex: currentDef, adjustments 
       });
       
-      const { ai, rotate } = getAiInstance();
+      const ai = getAiInstance();
       const response = await ai.models.generateContent({ 
-        model: 'gemini-2.5-flash-image', 
+        model: IMAGE_GEN_MODEL, // LUÔN LUÔN dùng model image gen cố định
         contents: { parts: parts } 
       });
       
@@ -263,24 +224,19 @@ Kịch bản thô: "${scriptText}"`;
             }
             return r;
         }));
-      } else throw new Error("Không nhận được dữ liệu ảnh từ AI.");
+      } else throw new Error("Không nhận được dữ liệu ảnh.");
     } catch (err: any) {
       const errorMessage = err.message || "Lỗi không xác định";
       
-      // Handle 429 Too Many Requests with retry
-      if (errorMessage.includes("429") && retryCount < 3) {
-          getAiInstance().rotate(); // Switch key if possible
-          const backoffTime = 5000 * (retryCount + 1); // 5s, 10s, 15s
-          console.log(`Rate limited. Retrying in ${backoffTime}ms...`);
-          setTableData(prev => prev.map(r => r.id === rowId ? { ...r, error: `Hệ thống bận, đang thử lại lần ${retryCount + 1}...` } : r));
+      if (errorMessage.includes("429") && retryCount < 5) {
+          const backoffTime = 10000 * (retryCount + 1);
+          setTableData(prev => prev.map(r => r.id === rowId ? { ...r, error: `Hệ thống bận, đang chờ xử lý lại sau ${backoffTime/1000}s...` } : r));
           await delay(backoffTime);
           return generateImage(rowId, adjustments, retryCount + 1);
       }
 
       let finalError = errorMessage;
-      if (finalError.includes("429")) {
-          finalError = "Quá nhiều yêu cầu. Hãy thêm nhiều API Key hoặc đợi 2 phút.";
-      }
+      if (finalError.includes("429")) finalError = "Hạn mức API đã hết. Hãy đợi vài phút rồi thử lại.";
       setTableData(prev => prev.map(r => r.id === rowId ? { ...r, error: `Lỗi: ${finalError}`, isGenerating: false } : r));
     }
   }, [getAiInstance]);
@@ -288,15 +244,15 @@ Kịch bản thô: "${scriptText}"`;
   const handleGenerateAllImages = useCallback(async () => {
     const rowsToProcess = tableData.filter(r => r.generatedImages.length === 0 && !r.isGenerating);
     if (rowsToProcess.length === 0) {
-        alert("Tất cả các dòng đều đã có ảnh hoặc đang được tạo.");
+        alert("Không có ảnh mới cần tạo.");
         return;
     }
 
-    // Process sequentially to respect rate limits better
+    // Xử lý tuần tự từng hàng một để tránh lỗi 429
     for (let i = 0; i < rowsToProcess.length; i++) {
         await generateImage(rowsToProcess[i].id);
-        // Tăng delay lên 3.5s + random jitter để an toàn hơn
-        await delay(3500 + Math.random() * 1000); 
+        // Tăng khoảng nghỉ giữa các yêu cầu lên 10-12 giây để đảm bảo an toàn cho quota
+        await delay(10000 + Math.random() * 2000); 
     }
   }, [tableData, generateImage]);
 
@@ -308,21 +264,20 @@ Kịch bản thô: "${scriptText}"`;
     if (!mainAsset) { handleUpdateRow({ ...row, error: "Cần có ảnh chính để tạo prompt video." }); return; }
     setTableData(prevData => prevData.map(r => r.id === rowId ? { ...r, isGeneratingPrompt: true, error: null, videoPrompt: '' } : r));
     try {
-        const { ai, rotate } = getAiInstance();
-        const parts = [{ inlineData: { data: mainAsset.split(',')[1], mimeType: mainAsset.startsWith('data:image/jpeg') ? 'image/jpeg' : 'image/png' } }, { text: `Từ kịch bản [${row.originalRow[2]}] hãy viết Prompt Video tiếng Anh dài 300 chữ theo cấu trúc mô tả chi tiết 8 giây camera move. ${videoPromptNote}` }];
+        const ai = getAiInstance();
+        const parts = [{ inlineData: { data: mainAsset.split(',')[1], mimeType: 'image/png' } }, { text: `Từ kịch bản [${row.originalRow[2]}] hãy viết Prompt Video tiếng Anh dài 300 chữ mô tả chuyển động camera 8 giây. ${videoPromptNote}` }];
+        // Sử dụng model người dùng chọn cho tác vụ xử lý văn bản
         const responseStream = await ai.models.generateContentStream({ model: selectedModel, contents: { parts } });
         for await (const chunk of responseStream) {
             setTableData(prevData => prevData.map(r => r.id === rowId ? { ...r, videoPrompt: (r.videoPrompt || '') + (chunk.text || '') } : r));
         }
     } catch (err: any) {
-        handleUpdateRow({ ...tableData.find(r => r.id === rowId)!, error: `Lỗi viết prompt video: ${err.message}` });
-        getAiInstance().rotate();
+        handleUpdateRow({ ...tableData.find(r => r.id === rowId)!, error: `Lỗi: ${err.message}` });
     } finally { setTableData(prevData => prevData.map(r => r.id === rowId ? { ...r, isGeneratingPrompt: false } : r)); }
   }, [tableData, handleUpdateRow, videoPromptNote, getAiInstance, selectedModel]);
 
   const handleSetMainImage = useCallback((rowId: number, index: number) => {
     setTableData(prevData => prevData.map(row => (row.id === rowId ? { ...row, mainImageIndex: index } : row)));
-    setHasUnsavedChanges(true);
   }, []);
 
   const handleDownloadRowAssets = useCallback((row: TableRowData) => {
@@ -331,18 +286,12 @@ Kịch bản thô: "${scriptText}"`;
 
   const handleResetApp = () => window.location.reload();
 
-  const handleAppDrop = useCallback((files: File[]) => {
-    if (files.length > 0) {
-      handleDocUpload(files[0]);
-    }
-  }, [handleDocUpload]);
-
   const handleSendMessageToAI = async (prompt: string) => {
     const updatedMessages: ChatMessage[] = [...chatMessages, { role: 'user', content: prompt }];
     setChatMessages(updatedMessages);
     setIsAiReplying(true);
     try {
-        const { ai, rotate } = getAiInstance();
+        const ai = getAiInstance();
         const history = updatedMessages.slice(0, -1).map(msg => ({ role: msg.role, parts: [{ text: msg.content }] }));
         const chat = ai.chats.create({ model: selectedModel, history: history });
         const responseStream = await chat.sendMessageStream({ message: prompt });
@@ -358,7 +307,6 @@ Kịch bản thô: "${scriptText}"`;
         }
     } catch (err: any) {
         setChatMessages(prev => [...prev, { role: 'model', content: `Lỗi: ${err.message}` }]);
-        getAiInstance().rotate();
     } finally { setIsAiReplying(false); }
   };
 
@@ -369,8 +317,8 @@ Kịch bản thô: "${scriptText}"`;
           <div className="flex flex-wrap justify-between items-center gap-x-6 gap-y-3">
             <h1 onClick={handleResetApp} className="text-2xl font-bold tracking-wider gradient-text cursor-pointer">StudyAI86</h1>
             <div className="flex items-center flex-wrap justify-end gap-2">
-               <button onClick={() => setIsApiKeyManagerOpen(true)} className="flex-shrink-0 h-10 font-bold py-2 px-4 rounded-lg bg-green-100 text-green-700 dark:bg-[#0f3a29] dark:text-green-300 border border-green-700 hover:bg-orange-100 hover:text-orange-700 transition-colors whitespace-nowrap shadow-sm">
-                ⚙️ API & Model
+               <button onClick={() => setChatState('open')} className="flex-shrink-0 h-10 font-bold py-2 px-4 rounded-lg bg-green-600 text-white hover:bg-green-700 transition-colors shadow-sm">
+                API & Model
               </button>
                <button onClick={() => createProjectAssetsZip(tableData, `images-assets.zip`)} className="flex-shrink-0 h-10 font-semibold py-2 px-4 rounded-lg bg-gray-200 dark:bg-[#0f3a29] text-gray-800 dark:text-green-300 border border-gray-300 dark:border-green-700 hover:bg-orange-100 hover:text-orange-700 transition-colors whitespace-nowrap shadow-sm">
                 Tải toàn bộ ảnh
@@ -387,8 +335,7 @@ Kịch bản thô: "${scriptText}"`;
       </header>
       
       <main className="container mx-auto p-6">
-       {/* Added disableClick={true} to avoid opening file picker when clicking internal UI */}
-       <FileDropzone onDrop={handleAppDrop} accept=".txt,.docx" dropMessage="Tải kịch bản" disableClick={true}>
+       <FileDropzone onDrop={(f) => handleDocUpload(f[0])} accept=".txt,.docx" dropMessage="Tải kịch bản" disableClick={true}>
         {!selectedStyle ? ( <StyleSelector onSelectStyle={handleStyleSelect} /> ) : (
           <div className="space-y-6">
             <CharacterManager 
@@ -401,7 +348,7 @@ Kịch bản thô: "${scriptText}"`;
               tableData={tableData}
               selectedModel={selectedModel}
               onAutoFillRows={handleAutoFillCharacters}
-              getAiInstance={getAiInstance}
+              getAiInstance={() => ({ ai: getAiInstance(), rotate: () => {} })}
             />
             <ResultsView selectedStyle={selectedStyle} tableData={tableData} characters={characters} defaultCharacterIndex={defaultCharacterIndex} onBack={handleBackToStyles} onDocUpload={handleDocUpload} onUpdateRow={handleUpdateRow} onGenerateImage={generateImage} onGenerateAllImages={handleGenerateAllImages} onGenerateVideoPrompt={generateVideoPromptForRow} onGenerateAllVideoPrompts={() => tableData.forEach(r => generateVideoPromptForRow(r.id))} onDownloadAll={() => createProjectAssetsZip(tableData, `images_assets.zip`)} onViewImage={setViewingImage} onStartRemake={setRemakingRow} onOpenHistory={setHistoryRow} onSendToVideo={(id) => generateVideoPromptForRow(id)} isProcessing={isProcessingScript} />
           </div>
@@ -413,11 +360,9 @@ Kịch bản thô: "${scriptText}"`;
       <RemakeModal rowData={remakingRow} tableData={tableData} onClose={() => setRemakingRow(null)} onRemake={(id, adj) => { setRemakingRow(null); generateImage(id, adj); }} />
       <ConfirmationModal isOpen={!!confirmation} message={confirmation?.message || ''} onConfirm={() => confirmation?.onConfirm()} onClose={() => setConfirmation(null)} />
       <VersionHistoryModal isOpen={!!historyRow} rowData={historyRow ? tableData.find(r => r.id === historyRow.id) : null} onClose={() => setHistoryRow(null)} onSetMain={handleSetMainImage} onDownloadAll={handleDownloadRowAssets} />
-      <ApiKeyManager isOpen={isApiKeyManagerOpen} onClose={() => setIsApiKeyManagerOpen(false)} apiKeys={apiKeys} setApiKeys={setApiKeys} selectedModel={selectedModel} onSelectModel={setSelectedModel} />
+      
+      {/* Tích hợp cửa sổ Cấu hình API và Model vào ChatModal hoặc tạo một Modal riêng biệt nếu cần */}
       <ChatModal isOpen={chatState === 'open'} onClose={() => setChatState('closed')} onMinimize={() => setChatState('minimized')} messages={chatMessages} onSendMessage={handleSendMessageToAI} isAiReplying={isAiReplying} onPresentScript={() => {}} />
-      {chatBubbleCondition && <ChatBubble onClick={() => setChatState('open')} />}
     </>
   );
 }
-
-const chatBubbleCondition = false;
