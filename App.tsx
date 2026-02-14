@@ -169,12 +169,13 @@ export default function App() {
   const handleUpdateRow = useCallback((updatedRow: TableRowData) => { setTableData(prevData => prevData.map(row => (row.id === updatedRow.id ? updatedRow : row))); }, []);
 
   const handleAutoFillCharacters = useCallback(() => {
+    // Chỉ lấy những nhân vật đã được kích hoạt (nút xanh - defaultCharacterIndices)
     const definedCharacters = characters
         .map((c, i) => ({ name: c.name.trim().toLowerCase(), index: i }))
-        .filter(c => c.name.length > 0);
+        .filter(c => c.name.length > 0 && defaultCharacterIndices.includes(c.index));
 
     if (definedCharacters.length === 0) {
-        alert("Vui lòng đặt tên cho ít nhất một nhân vật trước khi sử dụng chức năng này.");
+        alert("Vui lòng kích hoạt (nhấn 'Sử dụng nhân vật này') cho ít nhất một nhân vật trước khi sử dụng tính năng tự động điền.");
         return;
     }
 
@@ -199,12 +200,12 @@ export default function App() {
     });
 
     if (fillCount === 0) {
-        alert("Không tìm thấy tên nhân vật nào khớp trong kịch bản.");
+        alert("Không tìm thấy tên nhân vật nào (trong danh sách đang sử dụng) khớp với kịch bản.");
     } else {
         setTableData(updatedTableData);
         alert(`Thành công! Đã cập nhật nhân vật cho ${fillCount} phân cảnh.`);
     }
-  }, [characters, tableData]);
+  }, [characters, tableData, defaultCharacterIndices]);
 
   const handleDocUpload = useCallback(async (file: File, method: SegmentationMethod, customRule?: string) => {
     setIsProcessingScript(true);

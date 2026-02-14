@@ -119,7 +119,9 @@ export const getPromptForRow = (row: TableRowData, selectedStyle: Style, charact
             characterNames.push(`"${character.name}"`);
             
             if (character.stylePrompt) {
-                characterDetails += `+ ${character.name}: ${character.stylePrompt}\n`;
+                characterDetails += `+ Character <${character.name}> (Strictly follow attached Reference Image): ${character.stylePrompt}\n`;
+            } else {
+                characterDetails += `+ Character <${character.name}> (Strictly follow attached Reference Image)\n`;
             }
         });
         
@@ -297,11 +299,21 @@ export const getPromptAndPartsForRow = ({
     return { prompt, parts };
 };
 
+const addTimestampToFilename = (filename: string): string => {
+    const now = new Date();
+    // Format: YYYYMMDD_HHmmss
+    const timestamp = `${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, '0')}${String(now.getDate()).padStart(2, '0')}_${String(now.getHours()).padStart(2, '0')}${String(now.getMinutes()).padStart(2, '0')}${String(now.getSeconds()).padStart(2, '0')}`;
+    const dotIndex = filename.lastIndexOf('.');
+    if (dotIndex === -1) return `${filename}_${timestamp}`;
+    return `${filename.substring(0, dotIndex)}_${timestamp}${filename.substring(dotIndex)}`;
+};
+
 const downloadFile = (blob: Blob, filename: string) => {
+    const finalFilename = addTimestampToFilename(filename);
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = filename;
+    a.download = finalFilename;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
