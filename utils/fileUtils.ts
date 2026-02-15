@@ -209,7 +209,12 @@ export const getPromptAndPartsForRow = ({
     defaultCharacterIndices: number[];
     adjustments?: AdjustmentOptions;
 }): { prompt: string; parts: any[] } => {
-    let prompt = getPromptForRow(row, selectedStyle, characters);
+    // Ưu tiên sử dụng imagePrompt đã có (do người dùng tạo hoặc chỉnh sửa)
+    // Nếu chưa có thì mới tạo từ getPromptForRow
+    let prompt = row.imagePrompt && row.imagePrompt.trim() !== '' 
+        ? row.imagePrompt 
+        : getPromptForRow(row, selectedStyle, characters);
+
     const parts: any[] = [];
 
     const selectedCharIndices = row.selectedCharacterIndices;
@@ -352,6 +357,25 @@ export const exportPromptsToTxt = (tableData: TableRowData[], filename: string) 
     downloadFile(blob, filename);
 };
 
+export const exportImagePromptsToTxt = (tableData: TableRowData[], filename: string) => {
+    const prompts = tableData
+        .map(row => {
+            const stt = row.originalRow[0];
+            const promptContent = row.imagePrompt || row.contextPrompt;
+            if (!promptContent || !promptContent.trim()) return null;
+            return `Scene ${stt}:\n${promptContent.trim()}`;
+        })
+        .filter(p => p !== null);
+
+    if (prompts.length === 0) {
+        alert('Không có dữ liệu prompt ảnh để xuất.');
+        return;
+    }
+
+    const content = prompts.join('\n\n' + '-'.repeat(40) + '\n\n');
+    const blob = new Blob([content], { type: 'text/plain;charset=utf-8' });
+    downloadFile(blob, filename);
+};
 
 const getValidRowsForJsonExport = (tableData: TableRowData[]) => {
   return tableData

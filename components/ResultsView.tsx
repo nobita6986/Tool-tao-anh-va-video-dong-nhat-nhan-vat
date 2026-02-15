@@ -16,6 +16,7 @@ interface ResultsViewProps {
   onGenerateAllImages: (isRegenerate?: boolean) => void;
   onGenerateVideoPrompt: (rowId: number) => void;
   onGenerateAllVideoPrompts: () => void;
+  onGenerateAllContextPrompts: () => void;
   onDownloadAll: () => void;
   onViewImage: (imageUrl: string, rowId: number) => void;
   onStartRemake: (row: TableRowData) => void;
@@ -35,6 +36,7 @@ export const ResultsView: React.FC<ResultsViewProps> = ({
   onGenerateImage,
   onGenerateAllImages,
   onGenerateAllVideoPrompts,
+  onGenerateAllContextPrompts,
   onGenerateVideoPrompt,
   onDownloadAll,
   defaultCharacterIndices,
@@ -112,6 +114,7 @@ export const ResultsView: React.FC<ResultsViewProps> = ({
           onGenerateImage={onGenerateImage}
           onGenerateAllImages={onGenerateAllImages}
           onGenerateAllVideoPrompts={onGenerateAllVideoPrompts}
+          onGenerateAllContextPrompts={onGenerateAllContextPrompts}
           onGenerateVideoPrompt={onGenerateVideoPrompt}
           onDownloadAll={onDownloadAll}
           onViewImage={onViewImage}

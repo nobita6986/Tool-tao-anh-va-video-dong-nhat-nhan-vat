@@ -1,3 +1,4 @@
+
 import React, { useState, useCallback, ChangeEvent, useEffect, useRef } from 'react';
 import { GoogleGenAI } from '@google/genai';
 import { STYLES, PRESET_PROMPT_CONTEXT } from './constants';
@@ -9,11 +10,11 @@ import { ImageModal } from './components/ImageModal';
 import { SimpleImageModal } from './components/SimpleImageModal';
 import { RemakeModal } from './components/RemakeModal';
 import { ConfirmationModal } from './components/ConfirmationModal';
-import { createProjectAssetsZip, readExcelFile, createRowAssetsZip, exportPromptsToTxt, createFramesJsonWithImgAndPrompt, readTextFile, parseMarkdownTables } from './utils/fileUtils';
+import { createProjectAssetsZip, readExcelFile, createRowAssetsZip, exportPromptsToTxt, exportImagePromptsToTxt, createFramesJsonWithImgAndPrompt, readTextFile, parseMarkdownTables } from './utils/fileUtils';
 import { FileDropzone } from './components/FileDropzone';
 import { VersionHistoryModal } from './components/VersionHistoryModal';
 import { SunIcon, MoonIcon } from './components/icons';
-import { getPromptAndPartsForRow } from './utils/fileUtils';
+import { getPromptAndPartsForRow, getPromptForRow } from './utils/fileUtils';
 import { ChatModal } from './components/ChatModal';
 import { ApiKeyManager } from './components/ApiKeyManager';
 import { ScriptProcessingModal, SegmentationMethod } from './components/ScriptProcessingModal';
@@ -250,7 +251,8 @@ LƯU Ý: Không thêm văn bản thừa ngoài bảng Markdown.`;
                     isGenerating: false,
                     error: null,
                     videoPrompt: '',
-                    isGeneratingPrompt: false
+                    isGeneratingPrompt: false,
+                    imagePrompt: ''
                 };
             });
             setTableData(newTableData);
@@ -398,6 +400,17 @@ LƯU Ý: Không thêm văn bản thừa ngoài bảng Markdown.`;
     } finally { setTableData(prevData => prevData.map(r => r.id === rowId ? { ...r, isGeneratingPrompt: false } : r)); }
   }, [tableData, handleUpdateRow, videoPromptNote, getAiInstance, selectedModel]);
 
+  // Tạo hàng loạt prompt ảnh cuối cùng (Image Prompt)
+  const handleCreateAllImagePrompts = useCallback(() => {
+    if (!selectedStyle) return;
+    const updatedTableData = tableData.map(row => {
+        const finalPrompt = getPromptForRow(row, selectedStyle, characters);
+        return { ...row, imagePrompt: finalPrompt };
+    });
+    setTableData(updatedTableData);
+    alert('Đã tạo xong prompt cho tất cả các ô Image.');
+  }, [tableData, selectedStyle, characters]);
+
   const handleSetMainImage = useCallback((rowId: number, index: number) => {
     setTableData(prevData => prevData.map(row => (row.id === rowId ? { ...row, mainImageIndex: index } : row)));
   }, []);
@@ -459,7 +472,12 @@ LƯU Ý: Không thêm văn bản thừa ngoài bảng Markdown.`;
                </Tooltip>
                <Tooltip content="Xuất danh sách prompt video ra file TXT">
                     <button onClick={() => exportPromptsToTxt(tableData, `Scripts.txt`)} className="flex-shrink-0 h-10 font-semibold py-2 px-4 rounded-lg bg-gray-200 dark:bg-[#0f3a29] text-gray-800 dark:text-green-300 border border-gray-300 dark:border-green-700 hover:bg-orange-100 hover:text-orange-700 transition-colors whitespace-nowrap shadow-sm">
-                        tải prompt video
+                        Tải prompt video
+                    </button>
+               </Tooltip>
+               <Tooltip content="Xuất danh sách prompt ảnh (Image Prompts) ra file TXT">
+                    <button onClick={() => exportImagePromptsToTxt(tableData, `ImagePrompts.txt`)} className="flex-shrink-0 h-10 font-semibold py-2 px-4 rounded-lg bg-gray-200 dark:bg-[#0f3a29] text-gray-800 dark:text-green-300 border border-gray-300 dark:border-green-700 hover:bg-orange-100 hover:text-orange-700 transition-colors whitespace-nowrap shadow-sm">
+                        Tải prompt ảnh
                     </button>
                </Tooltip>
                <Tooltip content="Chuyển đổi giao diện Sáng/Tối">
@@ -509,7 +527,8 @@ LƯU Ý: Không thêm văn bản thừa ngoài bảng Markdown.`;
                 onGenerateImage={generateImage} 
                 onGenerateAllImages={handleGenerateAllImages} 
                 onGenerateVideoPrompt={generateVideoPromptForRow} 
-                onGenerateAllVideoPrompts={() => tableData.forEach(r => generateVideoPromptForRow(r.id))} 
+                onGenerateAllVideoPrompts={() => tableData.forEach(r => generateVideoPromptForRow(r.id))}
+                onGenerateAllContextPrompts={handleCreateAllImagePrompts}
                 onDownloadAll={() => createProjectAssetsZip(tableData, `images_assets.zip`)} 
                 onViewImage={(imageUrl, rowId) => setViewingImage({ imageUrl, rowId })} 
                 onStartRemake={setRemakingRow} 

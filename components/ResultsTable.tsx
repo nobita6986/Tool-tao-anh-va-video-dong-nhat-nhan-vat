@@ -13,6 +13,7 @@ interface ResultsTableProps {
   onGenerateImage: (rowId: number) => void;
   onGenerateAllImages: (isRegenerate?: boolean) => void;
   onGenerateAllVideoPrompts: () => void;
+  onGenerateAllContextPrompts: () => void;
   onGenerateVideoPrompt: (rowId: number) => void;
   onDownloadAll: () => void;
   onStartRemake: (row: TableRowData) => void;
@@ -29,6 +30,7 @@ export const ResultsTable: React.FC<ResultsTableProps> = ({
   onGenerateImage, 
   onGenerateAllImages, 
   onGenerateAllVideoPrompts, 
+  onGenerateAllContextPrompts,
   onDownloadAll, 
   selectedStyle, 
   onViewImage, 
@@ -44,6 +46,7 @@ export const ResultsTable: React.FC<ResultsTableProps> = ({
     { text: "Tiếng Việt", tooltip: "Bản dịch tiếng Việt dùng để người dùng kiểm soát nội dung." },
     { text: "Nhân vật", tooltip: "Danh sách nhân vật xuất hiện trong cảnh này. Ảnh tham chiếu sẽ được gửi kèm prompt." },
     { text: "Prompt bối cảnh", tooltip: "Mô tả chi tiết môi trường, ánh sáng, hành động cho AI vẽ ảnh." },
+    { text: "Prompt Image", tooltip: "Prompt cuối cùng được gửi đi để tạo ảnh (đã gộp style + character + context). Bạn có thể chỉnh sửa tại đây." },
     { text: "Image", tooltip: "Kết quả hình ảnh từ AI. Nhấn vào ảnh để xem toàn màn hình." },
     { text: "Prompt video", tooltip: "Câu lệnh điều khiển camera và chuyển động được AI phân tích từ hình ảnh." },
   ];
@@ -55,6 +58,15 @@ export const ResultsTable: React.FC<ResultsTableProps> = ({
         <div className="flex justify-between items-center bg-green-50/50 dark:bg-green-900/10 p-4 rounded-xl border border-green-100 dark:border-green-900/30">
             <p className="text-sm font-medium text-green-700 dark:text-green-400">⚡ Mẹo: Sử dụng các nút điều khiển hàng loạt để tối ưu hóa quy trình sản xuất.</p>
             <div className="flex gap-3">
+                <Tooltip content="Tạo prompt cuối cùng cho cột 'Prompt Image' (kết hợp Style + Context + Nhân vật) cho tất cả các dòng.">
+                    <button 
+                        onClick={onGenerateAllContextPrompts} 
+                        className="text-sm font-bold py-2.5 px-6 rounded-lg bg-teal-600 text-white hover:bg-teal-700 shadow-md transition-all active:scale-95"
+                    >
+                        Tạo tất cả prompt ảnh
+                    </button>
+                </Tooltip>
+
                 <Tooltip content={allRowsHaveImages 
                     ? 'AI sẽ vẽ lại toàn bộ phiên bản mới cho tất cả các phân cảnh (tạo thêm bản sao).'
                     : 'Kích hoạt vẽ AI cho tất cả các phân cảnh chưa có ảnh cùng lúc.'

@@ -125,6 +125,16 @@ export const ResultRow: React.FC<ResultRowProps> = ({ rowData, characters, onUpd
         />
       </td>
 
+      {/* Prompt Image (Final) */}
+      <td className="p-4 align-top w-[300px] min-w-[300px] max-w-[300px]">
+        <textarea
+          className={`${textAreaClass} text-gray-700 dark:text-gray-200 bg-teal-50/30 dark:bg-teal-900/10 border-teal-100 dark:border-teal-900/30 font-medium`}
+          value={rowData.imagePrompt || ''}
+          onChange={(e) => onUpdateRow({ ...rowData, imagePrompt: e.target.value })}
+          placeholder="Nhấn 'Tạo tất cả prompt ảnh' để tự động điền hoặc nhập thủ công..."
+        />
+      </td>
+
       {/* Image */}
       <td className="p-4 align-top w-48 min-w-[192px]">
         <div className="flex flex-col gap-2 min-h-[120px] justify-start h-full">

@@ -22,6 +22,7 @@ export interface TableRowData {
   id: number;
   originalRow: ExcelRow;
   contextPrompt: string;
+  imagePrompt?: string; // Prompt cuối cùng dùng để tạo ảnh (đã gộp style)
   selectedCharacterIndices: number[];
   generatedImages: string[];
   mainImageIndex: number;
