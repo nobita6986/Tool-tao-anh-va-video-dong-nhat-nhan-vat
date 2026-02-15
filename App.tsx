@@ -22,6 +22,7 @@ import { Tooltip } from './components/Tooltip';
 import { ToastContainer, ToastMessage, ToastType } from './components/Toast';
 import { GuideModal } from './components/GuideModal';
 import { LibraryModal } from './components/LibraryModal';
+import { WelcomeModal } from './components/WelcomeModal';
 
 const normalizeName = (name: string): string => {
   if (!name) return '';
@@ -87,6 +88,19 @@ export default function App() {
 
   const [isApiKeyManagerOpen, setIsApiKeyManagerOpen] = useState(false);
   const [isGuideOpen, setIsGuideOpen] = useState(false);
+  
+  // Logic hiển thị WelcomeModal: Chỉ hiện nếu chưa từng hiện trong vòng 12h qua
+  const [isWelcomeOpen, setIsWelcomeOpen] = useState(() => {
+    const lastShown = localStorage.getItem('welcome_modal_last_shown');
+    if (!lastShown) return true;
+    
+    const now = Date.now();
+    const twelveHours = 12 * 60 * 60 * 1000;
+    
+    // Nếu thời gian đã qua > 12h thì hiện lại
+    return (now - parseInt(lastShown, 10)) > twelveHours;
+  });
+
   const [isLibraryOpen, setIsLibraryOpen] = useState(false);
   const [apiKeys, setApiKeys] = useState<string[]>(() => {
     const saved = localStorage.getItem('user_api_keys');
@@ -593,6 +607,17 @@ LƯU Ý: Không thêm văn bản thừa ngoài bảng Markdown.`;
     setPendingScriptFile(file);
   };
   
+  const handleCloseWelcome = () => {
+    localStorage.setItem('welcome_modal_last_shown', Date.now().toString());
+    setIsWelcomeOpen(false);
+  };
+
+  const handleWelcomeOpenGuide = () => {
+    localStorage.setItem('welcome_modal_last_shown', Date.now().toString());
+    setIsWelcomeOpen(false);
+    setIsGuideOpen(true);
+  };
+
   const hasGeneratedImages = tableData.some(row => row.generatedImages.length > 0);
 
   return (
@@ -739,6 +764,7 @@ LƯU Ý: Không thêm văn bản thừa ngoài bảng Markdown.`;
       />
       
       <GuideModal isOpen={isGuideOpen} onClose={() => setIsGuideOpen(false)} />
+      <WelcomeModal isOpen={isWelcomeOpen} onClose={handleCloseWelcome} onOpenGuide={handleWelcomeOpenGuide} />
       <LibraryModal isOpen={isLibraryOpen} onClose={() => setIsLibraryOpen(false)} showToast={showToast} onLoadSession={() => {}} />
 
       <ScriptProcessingModal 
