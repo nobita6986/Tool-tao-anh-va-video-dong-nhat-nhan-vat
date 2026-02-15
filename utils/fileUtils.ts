@@ -91,16 +91,28 @@ const getExtensionFromDataUrl = (dataUrl: string): string => {
 };
 
 export const getPromptForRow = (row: TableRowData, selectedStyle: Style, characters: Character[]): string => {
-    if (!selectedStyle?.promptTemplate) return (row.contextPrompt || "").replace(/[\r\n]+/g, ' ').trim();
+    // Xác định xem có nhân vật nào được chọn không (không tính Random -2)
+    // Nếu mảng rỗng hoặc chứa -1 -> Không có nhân vật
+    const hasSpecificCharacter = row.selectedCharacterIndices.length > 0 && row.selectedCharacterIndices[0] >= 0;
+    const isRandomCharacter = row.selectedCharacterIndices.length > 0 && row.selectedCharacterIndices[0] === -2;
+
+    // Chọn Template: Nếu không có nhân vật và cũng không phải Random, dùng Scene Template (nếu có)
+    // Nếu có nhân vật hoặc Random, dùng Prompt Template (Character focused)
+    let basePrompt = '';
+    
+    if (!hasSpecificCharacter && !isRandomCharacter && selectedStyle.sceneTemplate) {
+        basePrompt = selectedStyle.sceneTemplate;
+    } else {
+        basePrompt = selectedStyle.promptTemplate || (row.contextPrompt || "").replace(/[\r\n]+/g, ' ').trim();
+    }
     
     // Tạo bản sao của template để thay thế
-    let basePrompt = selectedStyle.promptTemplate;
     const selectedCharIndices = row.selectedCharacterIndices;
 
     // Xử lý điền thông tin nhân vật vào [CHARACTER_STYLE]
     let characterDetails = '';
     
-    if (selectedCharIndices.length > 0 && selectedCharIndices[0] >= 0) { 
+    if (hasSpecificCharacter) { 
         // Trường hợp có chọn nhân vật cụ thể
         const characterNames: string[] = [];
         selectedCharIndices.forEach((charIndex) => {
@@ -117,17 +129,22 @@ export const getPromptForRow = (row: TableRowData, selectedStyle: Style, charact
             }
         });
         characterDetails += ` REQUIREMENT: Copy exact face and identity from reference image of [${characterNames.join(', ')}].`;
-    } else if (selectedCharIndices.length === 1 && selectedCharIndices[0] === -2) { 
+    } else if (isRandomCharacter) { 
         // Trường hợp Random
         characterDetails = "Create random character fitting the context. DO NOT copy character from reference image.";
     } else { 
-        // Trường hợp không chọn nhân vật
-        characterDetails = "No specific character. Focus on context or crowd.";
+        // Trường hợp không chọn nhân vật -> Focus on Scene/Crowd
+        characterDetails = "No specific character. Focus on environment, context, or generic crowd if script requires.";
     }
 
     // Thực hiện thay thế vào template
+    // Lưu ý: Template Scene mới dùng [CHARACTER_STYLE based on script] nên ta thay thế cả cụm này
     basePrompt = basePrompt.replace('[CHARACTER_STYLE]', characterDetails);
+    basePrompt = basePrompt.replace('[CHARACTER_STYLE based on script]', characterDetails);
+    
+    // Thay thế [A] hoặc [A based on script] bằng Context Prompt
     basePrompt = basePrompt.replace('[A]', row.contextPrompt);
+    basePrompt = basePrompt.replace('[A based on script]', row.contextPrompt);
 
     // QUAN TRỌNG: Thay thế toàn bộ ký tự xuống dòng bằng khoảng trắng để tạo thành 1 dòng duy nhất
     return basePrompt.replace(/[\r\n]+/g, ' ').replace(/\s+/g, ' ').trim();
@@ -141,8 +158,10 @@ export const getPromptAndPartsForRow = ({ row, rowIndex, tableData, selectedStyl
 
     const parts: any[] = [];
     const selectedCharIndices = row.selectedCharacterIndices;
+    const hasSpecificCharacter = selectedCharIndices.length > 0 && selectedCharIndices[0] >= 0;
     
-    if (selectedCharIndices.length > 0 && selectedCharIndices[0] >= 0) {
+    // CHỈ gửi ảnh tham chiếu nếu CÓ chọn nhân vật cụ thể
+    if (hasSpecificCharacter) {
         parts.push({ text: "**REFERENCE MATERIAL:** " }); 
         selectedCharIndices.forEach((charIndex: number) => {
             const character = characters[charIndex];
@@ -156,16 +175,9 @@ export const getPromptAndPartsForRow = ({ row, rowIndex, tableData, selectedStyl
             }
         });
         parts.push({ text: " **END OF REFERENCES.** " }); 
-    } else { 
-        const refCharacter = characters.find((c: any) => c && c.images.length > 0);
-        if (refCharacter && refCharacter.images.length > 0) {
-            parts.push({ text: "**STYLE REFERENCE IMAGE:**" });
-            const imgDataUrl = refCharacter.images[0]; 
-            const [header, base64Data] = imgDataUrl.split(',');
-            const mimeType = header.match(/data:(.*);base64/)?.[1] || 'image/png';
-            parts.push({ inlineData: { data: base64Data, mimeType: mimeType } });
-        }
-    }
+    } 
+    // Nếu KHÔNG chọn nhân vật, ta KHÔNG gửi ảnh style reference mặc định nữa để tránh AI lấy nhầm nhân vật từ style ref.
+    // Logic cũ: else { ... gửi style ref ... } -> Đã xóa để fix lỗi hallucination.
 
     if (adjustments) {
         let adjustmentText = " **ADJUSTMENTS:** Based on feedback, apply the following changes:";

@@ -129,7 +129,7 @@ export const ResultsTable: React.FC<ResultsTableProps> = ({
                 if (h.text === "Prompt bối cảnh" && !showContextPrompt) return null;
                 
                 return (
-                    <th key={h.text} className="p-4 text-left text-gray-500 dark:text-gray-400 font-black uppercase tracking-widest text-[10px]">
+                    <th key={h.text} className="p-2 text-left text-gray-500 dark:text-gray-400 font-black uppercase tracking-widest text-[10px]">
                         <div className="flex items-center">
                             {h.text}
                             {h.tooltip && (

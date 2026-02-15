@@ -6,7 +6,8 @@ export interface Style {
   description: string;
   tooltip: string;
   locked: boolean;
-  promptTemplate?: string;
+  promptTemplate?: string; // Template dùng khi có nhân vật (Character-focused)
+  sceneTemplate?: string;  // Template dùng khi KHÔNG có nhân vật (Scene-focused)
   imageUrl?: string;
 }
 

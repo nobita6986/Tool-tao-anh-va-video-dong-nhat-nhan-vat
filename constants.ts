@@ -1,7 +1,7 @@
 
 import type { Style } from './types';
 
-// Updated Helper function to build the full strict template based on the NEW REQUIREMENT
+// Template dùng cho dòng có nhân vật (Giữ nguyên logic cũ)
 const buildTemplate = (
     mainStyle: string,
     skinStyle: string,
@@ -18,6 +18,33 @@ Redraw my character with the exact same appearance and outfit, customized in:* $
 Character details: [CHARACTER_STYLE]
 + Skin/Fur style: ${skinStyle}*
 + Outfit style: ${clothesStyle}*
++ Face style: ${faceStyle}*
++ Other characters (if any): ${otherCharsStyle}*
++ Body proportions (all characters): ${bodyRatio}*
++ Background style: ${bgStyle}*
+
+The scene background is [A]
+
+OUTPUT GUIDE: Do not write any text, title, or description. Your entire response must be only the generated image.*`;
+};
+
+// Template MỚI dùng cho dòng KHÔNG có nhân vật (Scene Focused)
+const buildSceneTemplate = (
+    mainStyle: string,
+    skinStyle: string,
+    clothesStyle: string,
+    faceStyle: string,
+    otherCharsStyle: string,
+    bodyRatio: string,
+    bgStyle: string
+) => {
+    return `IMPORTANT REQUIREMENT: All characters, environments, and actions must be created entirely based on the text prompt below. Do not reference or use any external images.
+
+Illustrate the scene in:* ${mainStyle} *
+
+Character details: [CHARACTER_STYLE based on script]
++ Skin/Fur style: ${skinStyle.replace('reflecting personality', 'Clean flat tones, minimal texture, clear shadow shapes, reflecting personality')}*
++ Outfit style: ${clothesStyle.replace('consistent outfit', 'outfit appropriate to time and setting, consistent within the same scene')}*
 + Face style: ${faceStyle}*
 + Other characters (if any): ${otherCharsStyle}*
 + Body proportions (all characters): ${bodyRatio}*
@@ -47,6 +74,15 @@ export const STYLES: Style[] = [
         "Photorealistic, blending seamlessly with the environment.",
         "Anatomically correct and realistic human proportions.",
         "Cinematic set design, depth of field (bokeh), dramatic lighting, highly detailed textures."
+    ),
+    sceneTemplate: buildSceneTemplate(
+        "Photorealistic, cinematic 8k movie still, high budget production, 3-point professional lighting, shallow depth of field, shot on ARRI Alexa.",
+        "Hyper-realistic texture, visible skin pores.",
+        "High fidelity fabric textures, realistic folding.",
+        "Cinematic realism, emotional micro-expressions.",
+        "Photorealistic, blending seamlessly with the environment.",
+        "Anatomically correct and realistic human proportions.",
+        "Cinematic set design, depth of field (bokeh), dramatic lighting, highly detailed textures."
     )
   },
   {
@@ -63,6 +99,15 @@ export const STYLES: Style[] = [
         "Same style, varied shapes, clear color separation.",
         "Balanced Western cartoon proportions, not chibi, flexible limbs.",
         "Stylized 2D, clear shapes, medium detail, depth through color layers, key light + subtle rim light, clean modern look."
+    ),
+    sceneTemplate: buildSceneTemplate(
+        "2D Modern Western Animation style, clean bold lineart with dynamic line weight, controlled vibrant colors, 1–2 layer cel shading, subtle rim light, cinematic framing, energetic and friendly mood, highly expressive face, minimal clutter, looks like a modern Western animated TV frame.",
+        "Clean flat tones, minimal texture, clear shadow shapes.",
+        "Strong silhouette, large color blocks, minimal folds.",
+        "Clear eyes with simple highlights, flexible brows, simplified nose, readable mouth shapes.",
+        "Same style, varied shapes, clear color separation.",
+        "Balanced modern Western cartoon proportions, not chibi, flexible limbs.",
+        "Stylized 2D environment, clear geometric shapes, moderate detail, depth through layered color, key light with subtle rim light, clean cinematic look."
     )
   },
   {
@@ -76,6 +121,15 @@ export const STYLES: Style[] = [
         "Soft focus due to film grain, natural skin tones but slightly desaturated or yellow-tinted.",
         "90s fashion textures, slightly washed out colors due to film stock.",
         "Candid expressions, red-eye effect (optional), direct flash look, slightly soft edges.",
+        "Vintage aesthetic, matching the grain and color grading.",
+        "Realistic human proportions.",
+        "Nostalgic atmosphere, cluttered 90s details, low light with camera flash, film grain overlay."
+    ),
+    sceneTemplate: buildSceneTemplate(
+        "1990s vintage film aesthetic, VHS tape texture, film grain, slightly blurred, retro color grading, flash photography feel.",
+        "Soft focus due to film grain, natural skin tones.",
+        "90s fashion textures, slightly washed out colors.",
+        "Candid expressions, red-eye effect (optional).",
         "Vintage aesthetic, matching the grain and color grading.",
         "Realistic human proportions.",
         "Nostalgic atmosphere, cluttered 90s details, low light with camera flash, film grain overlay."
@@ -95,6 +149,15 @@ export const STYLES: Style[] = [
         "Ghibli style, simple and expressive.",
         "Slightly stylized, realistic but simplified proportions.",
         "Hand-painted watercolor style, fluffy cumulus clouds, vibrant greenery, detailed clutter but soft edges."
+    ),
+    sceneTemplate: buildSceneTemplate(
+        "Studio Ghibli animation style, Hayao Miyazaki aesthetic, hand-painted watercolor backgrounds, lush nature.",
+        "Flat shading, clean lines, simplified textures.",
+        "Simple lines, solid colors with minimal shading.",
+        "Large expressive eyes, simplified nose and mouth.",
+        "Ghibli style, simple and expressive.",
+        "Slightly stylized, realistic but simplified proportions.",
+        "Hand-painted watercolor style, fluffy cumulus clouds, vibrant greenery, detailed clutter but soft edges."
     )
   },
   {
@@ -108,6 +171,15 @@ export const STYLES: Style[] = [
         "Stylized realism, sharp shadows, high contrast skin tones, 'airbrushed' look.",
         "Sharp creases, bold patterns, high contrast shading on fabric.",
         "Cool, tough expressions, sharp jawlines, stylized eyes with bold outlines.",
+        "GTA comic book style, high contrast.",
+        "Realistic but idealized/stylized proportions.",
+        "California vibe, saturated sunsets, stylized cityscapes, bold vector backgrounds."
+    ),
+    sceneTemplate: buildSceneTemplate(
+        "GTA V Loading Screen art style, digital vector illustration, cel-shaded, bold black outlines, vibrant and saturated colors.",
+        "Stylized realism, sharp shadows, high contrast skin tones.",
+        "Sharp creases, bold patterns, high contrast shading.",
+        "Cool, tough expressions, sharp jawlines, stylized eyes.",
         "GTA comic book style, high contrast.",
         "Realistic but idealized/stylized proportions.",
         "California vibe, saturated sunsets, stylized cityscapes, bold vector backgrounds."
@@ -127,6 +199,15 @@ export const STYLES: Style[] = [
         "Eerie, shadowy, indistinct or distorted features.",
         "Slightly elongated or distorted to create unease.",
         "Cold lighting, isolated environments, fog, heavy shadows, desaturated colors."
+    ),
+    sceneTemplate: buildSceneTemplate(
+        "3D photorealistic horror, uncanny valley effect, cold color temperature, psychological thriller aesthetic.",
+        "Pale, sickly, or overly perfect 'wax-like' skin texture.",
+        "Dark, textured, slightly worn or dirty if horror.",
+        "Unsettling stares, lack of emotion or exaggerated fear.",
+        "Eerie, shadowy, indistinct or distorted features.",
+        "Slightly elongated or distorted to create unease.",
+        "Cold lighting, isolated environments, fog, heavy shadows, desaturated colors."
     )
   },
   {
@@ -136,6 +217,15 @@ export const STYLES: Style[] = [
     tooltip: 'Dành riêng cho các dự án văn hóa, truyện cổ tích hoặc phim bối cảnh làng quê Việt Nam.', 
     locked: false,
     promptTemplate: buildTemplate(
+        "Modern 3D realism, Vietnamese folklore aesthetic, cultural heritage focus, soft warm lighting.",
+        "Natural Vietnamese skin tones, warm undertones, realistic texture.",
+        "Traditional Vietnamese clothing (Ao Dai, Tu Than, Ao Ba Ba), accurate silk/cotton textures.",
+        "Asian features, gentle and expressive, culturally accurate styling.",
+        "Consistent Vietnamese rural style.",
+        "Realistic Vietnamese body proportions.",
+        "Ancient Vietnamese village, bamboo, rice fields, temples, red tiles, nostalgic and peaceful atmosphere."
+    ),
+    sceneTemplate: buildSceneTemplate(
         "Modern 3D realism, Vietnamese folklore aesthetic, cultural heritage focus, soft warm lighting.",
         "Natural Vietnamese skin tones, warm undertones, realistic texture.",
         "Traditional Vietnamese clothing (Ao Dai, Tu Than, Ao Ba Ba), accurate silk/cotton textures.",
@@ -159,6 +249,15 @@ export const STYLES: Style[] = [
         "Simple stick figures.",
         "Stick figure proportions (large head, thin line body).",
         "Abstract or sketched background, focus on action lines and speed effects."
+    ),
+    sceneTemplate: buildSceneTemplate(
+        "Cinematic Stickman art, thick black outlines, high contrast, dynamic action composition.",
+        "White or solid color (usually white) for the stick figure head/body.",
+        "Minimalist, represented by simple shapes or outlines on the stick body.",
+        "Expressive minimalist vector face (eyes and mouth only), exaggerated emotions.",
+        "Simple stick figures.",
+        "Stick figure proportions (large head, thin line body).",
+        "Abstract or sketched background, focus on action lines and speed effects."
     )
   },
   {
@@ -172,6 +271,15 @@ export const STYLES: Style[] = [
         "Translucent watercolor washes, bleeding colors, paper texture visible.",
         "Loose brush strokes, color bleeding into background, soft boundaries.",
         "Soft features, artistic representation, not hyper-detailed.",
+        "Watercolor style, blending into the scene.",
+        "Artistic and fluid proportions.",
+        "Visible paper grain, paint splatters, soft gradients, abstract background elements."
+    ),
+    sceneTemplate: buildSceneTemplate(
+        "Artistic Watercolor painting, wet-on-wet technique, soft edges, dreamy atmosphere.",
+        "Translucent watercolor washes, bleeding colors.",
+        "Loose brush strokes, color bleeding into background.",
+        "Soft features, artistic representation.",
         "Watercolor style, blending into the scene.",
         "Artistic and fluid proportions.",
         "Visible paper grain, paint splatters, soft gradients, abstract background elements."
@@ -191,6 +299,15 @@ export const STYLES: Style[] = [
         "Skeletal or undead style.",
         "Skeletal anatomy (ribs, spine visible).",
         "Gothic ruins, graveyards, dark magic atmosphere, fog, blue or green soul fire lighting."
+    ),
+    sceneTemplate: buildSceneTemplate(
+        "Dark Fantasy, Skeleton character aesthetic, gothic and mystical.",
+        "Bone texture, cracked, aged, white or yellowish bone color.",
+        "Tattered rags, ancient armor, or dark robes.",
+        "Skull face, hollow eye sockets, fixed skeletal grin.",
+        "Skeletal or undead style.",
+        "Skeletal anatomy (ribs, spine visible).",
+        "Gothic ruins, graveyards, dark magic atmosphere, fog, blue or green soul fire lighting."
     )
   },
   {
@@ -200,6 +317,15 @@ export const STYLES: Style[] = [
     tooltip: 'Tuyệt vời cho nội dung về game, hoài cổ (Nostalgia) hoặc video phong cách Arcade.', 
     locked: false,
     promptTemplate: buildTemplate(
+        "16-bit Pixel Art, SNES era aesthetic, pixelated details, limited color palette.",
+        "Pixelated skin tones, dithered shading.",
+        "Simplified pixel patterns representing clothes.",
+        "Pixelated facial features, limited resolution but expressive.",
+        "Pixel art sprites.",
+        "Chibi or game-sprite proportions.",
+        "Pixelated isometric or side-scrolling background, vibrant retro colors, dithering effects."
+    ),
+    sceneTemplate: buildSceneTemplate(
         "16-bit Pixel Art, SNES era aesthetic, pixelated details, limited color palette.",
         "Pixelated skin tones, dithered shading.",
         "Simplified pixel patterns representing clothes.",
@@ -223,6 +349,15 @@ export const STYLES: Style[] = [
         "Clay figures.",
         "Chunky, rounded, cartoonish proportions.",
         "Miniature set design, tilt-shift photography effect, soft studio lighting."
+    ),
+    sceneTemplate: buildSceneTemplate(
+        "Claymation style, Aardman animations aesthetic, stop-motion clay texture.",
+        "Matte clay texture, visible fingerprints.",
+        "Thick clay sculpting look, solid colors.",
+        "Beady plastic eyes, sculpted mouths, exaggerated expressions.",
+        "Clay figures.",
+        "Chunky, rounded, cartoonish proportions.",
+        "Miniature set design, tilt-shift photography effect, soft studio lighting."
     )
   },
   {
@@ -232,6 +367,15 @@ export const STYLES: Style[] = [
     tooltip: 'Dành cho bối cảnh tương lai, công nghệ cao, Hacker hoặc Sci-fi hành động.', 
     locked: false,
     promptTemplate: buildTemplate(
+        "Cyberpunk futuristic, high-tech low-life, neon-drenched, cinematic sci-fi.",
+        "Illuminated by neon lights (cyan/magenta), glossy or metallic skin implants.",
+        "Tech-wear, latex, holographic fabrics, glowing accessories.",
+        "Sharp, intense, possibly cybernetic eye implants, neon face paint.",
+        "Futuristic, punk, modified.",
+        "Realistic but stylized with tech enhancements.",
+        "Night city, rain-slicked streets, towering holograms, neon signs, crowded futuristic architecture."
+    ),
+    sceneTemplate: buildSceneTemplate(
         "Cyberpunk futuristic, high-tech low-life, neon-drenched, cinematic sci-fi.",
         "Illuminated by neon lights (cyan/magenta), glossy or metallic skin implants.",
         "Tech-wear, latex, holographic fabrics, glowing accessories.",
@@ -255,6 +399,15 @@ export const STYLES: Style[] = [
         "Rough sketch outlines.",
         "Artistic, loose proportions.",
         "White paper background, messy graphite smudges, architectural sketch lines, unfinished edges."
+    ),
+    sceneTemplate: buildSceneTemplate(
+        "Hand-drawn pencil sketch, graphite on paper, rough artistic style.",
+        "Hatched lines shading, monochrome grey tones.",
+        "Rough sketch lines, cross-hatching to show texture.",
+        "Expressive sketch, focus on key features, loose lines.",
+        "Rough sketch outlines.",
+        "Artistic, loose proportions.",
+        "White paper background, messy graphite smudges, architectural sketch lines, unfinished edges."
     )
   },
   {
@@ -267,6 +420,15 @@ export const STYLES: Style[] = [
         "Modern Japanese Anime style, Makoto Shinkai aesthetic, high quality 2D animation.",
         "Smooth, cell-shaded, pale or natural tones with soft blush.",
         "Detailed anime fashion, clean lines, vibrant colors.",
+        "Large detailed eyes, small nose/mouth, emotive anime expressions.",
+        "Anime style characters.",
+        "Stylized anime proportions (slender, large eyes).",
+        "Detailed backgrounds, dramatic lighting (lens flares), vibrant sky, polished look."
+    ),
+    sceneTemplate: buildSceneTemplate(
+        "Modern Japanese Anime style, Makoto Shinkai aesthetic, high quality 2D animation.",
+        "Smooth, cell-shaded, pale or natural tones.",
+        "Detailed anime fashion, clean lines.",
         "Large detailed eyes, small nose/mouth, emotive anime expressions.",
         "Anime style characters.",
         "Stylized anime proportions (slender, large eyes).",
@@ -287,6 +449,15 @@ export const STYLES: Style[] = [
         "Paper cutout figures.",
         "Stylized, flat paper puppets.",
         "Multi-layered scenery, realistic drop shadows between layers, craft paper texture."
+    ),
+    sceneTemplate: buildSceneTemplate(
+        "Paper Cutout art, layered paper craft, diorama style, physical depth.",
+        "Textured paper look, flat colors per layer.",
+        "Layers of colored paper, sharp edges.",
+        "Simplified paper shapes, minimalist features.",
+        "Paper cutout figures.",
+        "Stylized, flat paper puppets.",
+        "Multi-layered scenery, realistic drop shadows between layers, craft paper texture."
     )
   },
   {
@@ -299,6 +470,15 @@ export const STYLES: Style[] = [
         "Classic Oil Painting, Impasto technique, Renaissance or Impressionist influence.",
         "Rich color blending, visible brush strokes, oil texture.",
         "Painted texture, deep folds in fabric, dramatic lighting on clothes.",
+        "Artistic interpretation, soft blending, dramatic chiaroscuro lighting.",
+        "Oil painted figures.",
+        "Classical realistic proportions.",
+        "Canvas texture visible, rich pigments, dramatic lighting contrast, painterly background."
+    ),
+    sceneTemplate: buildSceneTemplate(
+        "Classic Oil Painting, Impasto technique, Renaissance or Impressionist influence.",
+        "Rich color blending, visible brush strokes, oil texture.",
+        "Painted texture, deep folds in fabric.",
         "Artistic interpretation, soft blending, dramatic chiaroscuro lighting.",
         "Oil painted figures.",
         "Classical realistic proportions.",
@@ -319,6 +499,15 @@ export const STYLES: Style[] = [
         "Robots or cyborgs.",
         "Mechanical, bulky or sleek robotic proportions.",
         "High-tech hangar, futuristic battlefield, metallic surfaces, clean workshop or gritty warzone."
+    ),
+    sceneTemplate: buildSceneTemplate(
+        "Sci-fi Mecha/Robot design, hard-surface modeling, futuristic technology.",
+        "Metallic panels, synthetic skin, carbon fiber textures.",
+        "Armor plating, exposed hydraulic cables, glowing power cores.",
+        "Robotic face, HUD displays, glowing optical sensors.",
+        "Robots or cyborgs.",
+        "Mechanical, bulky or sleek robotic proportions.",
+        "High-tech hangar, futuristic battlefield, metallic surfaces, clean workshop or gritty warzone."
     )
   },
   {
@@ -328,6 +517,15 @@ export const STYLES: Style[] = [
     tooltip: 'Hiện đại, sạch sẽ. Thích hợp cho thiết kế UI/UX, icon hoặc minh họa báo chí.', 
     locked: false,
     promptTemplate: buildTemplate(
+        "Minimalist Vector Art, Flat Design, corporate Memphis style.",
+        "Solid flat colors, no gradients, no texture.",
+        "Geometric shapes representing clothes, flat colors.",
+        "Faceless or extremely simplified (dots for eyes), neutral expressions.",
+        "Flat vector figures.",
+        "Exaggerated or geometric proportions.",
+        "Solid color backgrounds, abstract geometric shapes, clean composition, negative space."
+    ),
+    sceneTemplate: buildSceneTemplate(
         "Minimalist Vector Art, Flat Design, corporate Memphis style.",
         "Solid flat colors, no gradients, no texture.",
         "Geometric shapes representing clothes, flat colors.",
@@ -351,6 +549,15 @@ export const STYLES: Style[] = [
         "Cute 3D animated characters.",
         "Cartoon proportions (larger head and eyes, smaller hands/feet).",
         "Soft volumetric lighting, vibrant colors, detailed but inviting environment, magical atmosphere."
+    ),
+    sceneTemplate: buildSceneTemplate(
+        "3D Animation, Disney/Pixar style, RenderMan rendering, cute and friendly.",
+        "Soft, smooth skin, subsurface scattering (gummy feel).",
+        "Detailed fabric textures but stylized shapes, bright colors.",
+        "Large expressive eyes, rounded features, friendly expressions.",
+        "Cute 3D animated characters.",
+        "Cartoon proportions (larger head and eyes, smaller hands/feet).",
+        "Soft volumetric lighting, vibrant colors, detailed but inviting environment, magical atmosphere."
     )
   },
   {
@@ -360,6 +567,15 @@ export const STYLES: Style[] = [
     tooltip: 'Phong cách Pop-art mạnh mẽ, phù hợp cho nội dung siêu anh hùng hoặc hành động.', 
     locked: false,
     promptTemplate: buildTemplate(
+        "Vintage American Comic Book, Pop Art, Roy Lichtenstein style, halftone patterns.",
+        "Ben-Day dots for skin shading, bold black outlines.",
+        "Solid primary colors (CMYK), heavy black inking for shadows.",
+        "Dramatic expressions, bold lines, comic book features.",
+        "Comic book heroes/villains.",
+        "Heroic, muscular or idealized proportions.",
+        "Halftone dot background, speech bubbles (optional), action lines, bold colors."
+    ),
+    sceneTemplate: buildSceneTemplate(
         "Vintage American Comic Book, Pop Art, Roy Lichtenstein style, halftone patterns.",
         "Ben-Day dots for skin shading, bold black outlines.",
         "Solid primary colors (CMYK), heavy black inking for shadows.",
@@ -383,6 +599,15 @@ export const STYLES: Style[] = [
         "Fantasy creatures or gothic figures.",
         "Realistic heroic proportions.",
         "Ancient castles, mist-covered forests, moonlight, stone textures, magical particles."
+    ),
+    sceneTemplate: buildSceneTemplate(
+        "Dark Fantasy, Gothic RPG art style, moody and atmospheric.",
+        "Pale, shadowed, realistic texture but desaturated.",
+        "Intricate armor, leather, velvet, gothic patterns.",
+        "Serious, mysterious, brooding expressions, sharp features.",
+        "Fantasy creatures or gothic figures.",
+        "Realistic heroic proportions.",
+        "Ancient castles, mist-covered forests, moonlight, stone textures, magical particles."
     )
   },
   {
@@ -399,6 +624,15 @@ export const STYLES: Style[] = [
         "Ink silhouette figures.",
         "Abstract, fluid proportions.",
         "White or black void, exploding ink splashes, glowing neon geometric lines, energy effects."
+    ),
+    sceneTemplate: buildSceneTemplate(
+        "Ink Splash Art mixed with Glowing Neon, abstract and energetic.",
+        "Formed by chaotic ink splatters, high contrast black and white.",
+        "Abstract ink forms representing clothes with glowing neon edges.",
+        "Partially obscured by ink drips, glowing eyes.",
+        "Ink silhouette figures.",
+        "Abstract, fluid proportions.",
+        "White or black void, exploding ink splashes, glowing neon geometric lines, energy effects."
     )
   },
   {
@@ -408,6 +642,15 @@ export const STYLES: Style[] = [
     tooltip: 'Phong cách kỹ thuật số trừu tượng, thích hợp cho visual background hoặc game indie.', 
     locked: false,
     promptTemplate: buildTemplate(
+        "Low-Poly Art, faceted 3D geometry, digital sculpture aesthetic.",
+        "Faceted polygon planes, flat colors per facet, hard lighting edges.",
+        "Blocky, geometric representation of clothes.",
+        "Angular, sharp features, minimalist low-poly face.",
+        "Low-poly figures.",
+        "Blocky, geometric proportions.",
+        "Geometric landscape, sharp shadows, soft ambient occlusion, abstract digital world."
+    ),
+    sceneTemplate: buildSceneTemplate(
         "Low-Poly Art, faceted 3D geometry, digital sculpture aesthetic.",
         "Faceted polygon planes, flat colors per facet, hard lighting edges.",
         "Blocky, geometric representation of clothes.",
