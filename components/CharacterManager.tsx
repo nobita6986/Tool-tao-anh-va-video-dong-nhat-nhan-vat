@@ -5,6 +5,7 @@ import type { Character, TableRowData, GeminiModel } from '../types';
 import { fileToBase64 } from '../utils/fileUtils';
 import { FileDropzone } from './FileDropzone';
 import { Tooltip } from './Tooltip';
+import { ToastType } from './Toast';
 
 interface CharacterManagerProps {
   characters: Character[];
@@ -18,6 +19,7 @@ interface CharacterManagerProps {
   onAutoFillRows: () => void;
   getAiInstance: () => { ai: GoogleGenAI, rotate: () => void };
   onViewImage: (url: string) => void;
+  showToast: (message: string, type: ToastType) => void;
 }
 
 export const CharacterManager: React.FC<CharacterManagerProps> = ({ 
@@ -31,7 +33,8 @@ export const CharacterManager: React.FC<CharacterManagerProps> = ({
   selectedModel,
   onAutoFillRows,
   getAiInstance,
-  onViewImage
+  onViewImage,
+  showToast
 }) => {
   const [isDetecting, setIsDetecting] = useState(false);
   const [isExpanded, setIsExpanded] = useState(false);
@@ -70,7 +73,7 @@ export const CharacterManager: React.FC<CharacterManagerProps> = ({
 
   const detectCharacters = async () => {
     if (tableData.length === 0) {
-      alert('Vui lòng tải kịch bản trước để AI có dữ liệu phân tích nhân vật.');
+      showToast('Vui lòng tải kịch bản trước để AI có dữ liệu phân tích nhân vật.', 'warning');
       return;
     }
     
@@ -88,7 +91,7 @@ Kịch bản: "${scriptText.substring(0, 3000)}"`;
 
       const names = response.text?.split(',').map(n => n.trim()).filter(n => n.length > 0) || [];
       if (names.length === 0) {
-        alert('Không tìm thấy nhân vật rõ ràng trong kịch bản.');
+        showToast('Không tìm thấy nhân vật rõ ràng trong kịch bản.', 'info');
       } else {
         const existingNames = new Set(characters.map(c => c.name.toLowerCase().trim()));
         const newSlots = names
@@ -96,9 +99,10 @@ Kịch bản: "${scriptText.substring(0, 3000)}"`;
           .map(name => ({ name, images: [], stylePrompt: '' }));
           
         setCharacters([...characters.filter(c => c.name || c.images.length > 0), ...newSlots]);
+        showToast(`Đã tìm thấy ${newSlots.length} nhân vật mới.`, 'success');
       }
     } catch (error: any) {
-      alert(`Lỗi phân tích: ${error.message}`);
+      showToast(`Lỗi phân tích: ${error.message}`, 'error');
     } finally {
       setIsDetecting(false);
     }
@@ -115,8 +119,10 @@ Kịch bản: "${scriptText.substring(0, 3000)}"`;
       const newCharacters = [...characters];
       newCharacters[index] = { ...newCharacters[index], images: [...newCharacters[index].images, ...base64Images] };
       setCharacters(newCharacters);
+      showToast('Đã tải ảnh lên thành công', 'success');
     } catch (error) {
       console.error('Error uploading:', error);
+      showToast('Lỗi tải ảnh lên', 'error');
     }
   };
 

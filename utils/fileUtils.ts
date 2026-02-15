@@ -55,18 +55,11 @@ export const readExcelFile = async (file: File): Promise<ExcelRow[]> => {
     }
 };
 
-/**
- * Reads an Excel file and extracts the first column as a list of strings (e.g., API keys).
- * Added to resolve the missing export error in ApiKeyManager.tsx.
- */
 export const readKeysFromExcel = async (file: File): Promise<string[]> => {
     try {
         const excelData = await readExcelFile(file);
         if (!excelData || excelData.length < 1) return [];
-        
-        // Extract first column, skip header if it looks like one (e.g. contains "key")
         const startIndex = (excelData[0] && String(excelData[0][0]).toLowerCase().includes('key')) ? 1 : 0;
-        
         return excelData.slice(startIndex)
             .map(row => (row && row.length > 0 ? String(row[0]).trim() : ''))
             .filter(key => key.length > 0 && key !== 'null' && key !== 'undefined');
@@ -89,13 +82,9 @@ const getExtensionFromDataUrl = (dataUrl: string): string => {
     const mimeType = dataUrl.match(/data:(image\/[^;]+);/);
     if (mimeType && mimeType[1]) {
         switch (mimeType[1]) {
-            case 'image/jpeg':
-                return '.jpg';
-            case 'image/png':
-                return '.png';
-            default:
-                const extension = mimeType[1].split('/')[1];
-                return extension ? `.${extension}` : '.png';
+            case 'image/jpeg': return '.jpg';
+            case 'image/png': return '.png';
+            default: return `.${mimeType[1].split('/')[1] || 'png'}`;
         }
     }
     return '.png';
@@ -103,7 +92,6 @@ const getExtensionFromDataUrl = (dataUrl: string): string => {
 
 export const getPromptForRow = (row: TableRowData, selectedStyle: Style, characters: Character[]): string => {
     if (!selectedStyle?.promptTemplate) return row.contextPrompt || "";
-
     const selectedCharIndices = row.selectedCharacterIndices;
     let basePrompt = '';
     const originalTemplate = selectedStyle.promptTemplate;
@@ -111,79 +99,41 @@ export const getPromptForRow = (row: TableRowData, selectedStyle: Style, charact
     if (selectedCharIndices.length > 0 && selectedCharIndices[0] >= 0) { 
         let characterDetails = '';
         const characterNames: string[] = [];
-
         selectedCharIndices.forEach((charIndex) => {
             const character = characters[charIndex];
             if (!character || !character.name) return;
-            
             characterNames.push(`"${character.name}"`);
-            
-            // Tăng cường chỉ thị cho từng nhân vật cụ thể
             const userStyleInstruction = character.stylePrompt 
                 ? `\n   - **Specific Style/Attire:** ${character.stylePrompt}` 
                 : `\n   - **Attire:** Match the clothing style in the reference image.`;
-
-            characterDetails += `\n🔴 **TARGET CHARACTER: ${character.name}**\n` +
-                `   - **SOURCE:** Use the provided reference image(s) labeled for "${character.name}".\n` +
-                `   - **FACE/IDENTITY:** STRICTLY COPY the facial features and structure from the reference image. The identity must be unmistakable.\n` +
-                `   - **EXPRESSION:** ADAPT the facial expression to match the emotional context of the scene while maintaining the face identity.\n` +
-                `   - **BODY TYPE:** Match the body build and age from the reference.${userStyleInstruction}\n`;
+            characterDetails += `\n🔴 **TARGET CHARACTER: ${character.name}**\n   - **SOURCE:** Use the provided reference image(s) labeled for "${character.name}".\n   - **FACE/IDENTITY:** STRICTLY COPY the facial features and structure from the reference image.\n   - **EXPRESSION:** ADAPT the facial expression to match the emotional context.\n   - **BODY TYPE:** Match the body build and age from the reference.${userStyleInstruction}\n`;
         });
         
         let template = originalTemplate;
         if (characterNames.length > 0) {
-             const multiCharacterInstruction = `**⚠️ CRITICAL: CHARACTER CONSISTENCY PROTOCOL ⚠️**
-I have provided reference images for the following characters: ${characterNames.join(', ')}.
-
-**MANDATORY RULES FOR AI:**
-1.  **VISUAL FIDELITY:** You MUST generate the characters with the EXACT SAME facial features and identity as the reference images.
-2.  **IDENTITY LOCK:** Do NOT create generic faces. The face must be recognizable as the specific person in the reference.
-3.  **DYNAMIC EXPRESSIONS:** While the face identity is locked, you MUST adapt the facial expression and emotion to match the scene description/context.
-4.  **STYLE COMPLIANCE:** Follow the user's specific clothing/style description for each character found in the Character Data below.
-5.  **NO DEVIATION:** Do not alter age, ethnicity, or key physical traits defined in the reference.
-
-**CHARACTER DATA:**
-${characterDetails}
-
-**SCENE CONTEXT (Apply the Art Style to this context):**`;
-            
-            // Replace the generic intro with our strong reference instruction
+             const multiCharacterInstruction = `**⚠️ CRITICAL: CHARACTER CONSISTENCY PROTOCOL ⚠️**\nI have provided reference images for: ${characterNames.join(', ')}.\n\n**MANDATORY RULES FOR AI:**\n1. **VISUAL FIDELITY:** You MUST generate the characters with the EXACT SAME facial features and identity as the reference images.\n2. **IDENTITY LOCK:** Do NOT create generic faces.\n3. **DYNAMIC EXPRESSIONS:** Adapt the facial expression to the scene.\n4. **STYLE COMPLIANCE:** Follow the user's specific clothing/style description.\n\n**CHARACTER DATA:**\n${characterDetails}\n\n**SCENE CONTEXT (Apply the Art Style to this context):**`;
             const introRegex = /^\*\*YÊU CẦU QUAN TRỌNG:[\s\S]*?Vẽ lại nhân vật tôi gửi, với chính xác ngoại hình, trang phục nhưng customize theo phong cách sau/s;
-            // If the template has the Vietnamese intro, replace it. Otherwise, prepend.
             if (introRegex.test(template)) {
                 template = template.replace(introRegex, multiCharacterInstruction);
             } else {
                 template = multiCharacterInstruction + "\n" + template;
             }
         }
-
         basePrompt = template.replace('[CHARACTER_STYLE]', '').replace('[A]', row.contextPrompt);
-
     } else if (selectedCharIndices.length === 1 && selectedCharIndices[0] === -2) { 
-        const randomCharacterInstruction = `**CREATIVE CHARACTER GENERATION:**
-Use the provided image purely for ART STYLE reference (lighting, texture, color palette).
-DO NOT copy the character in the reference image.
-CREATE A NEW CHARACTER based on the scene description below.
-Pay attention to age, gender, ethnicity, and clothing described in the prompt.`;
-        
+        const randomCharacterInstruction = `**CREATIVE CHARACTER GENERATION:**\nUse the provided image purely for ART STYLE reference.\nDO NOT copy the character in the reference image.\nCREATE A NEW CHARACTER based on the scene description below.`;
         let template = originalTemplate;
-        template = template.replace(
-            /^\*\*YÊU CẦU QUAN TRỌNG:[\s\S]*?Vẽ lại nhân vật tôi gửi, với chính xác ngoại hình, trang phục nhưng customize theo phong cách sau/s,
-            randomCharacterInstruction
-        );
+        template = template.replace(/^\*\*YÊU CẦU QUAN TRỌNG:[\s\S]*?Vẽ lại nhân vật tôi gửi, với chính xác ngoại hình, trang phục nhưng customize theo phong cách sau/s, randomCharacterInstruction);
         template = template.replace('[CHARACTER_STYLE]', '');
         basePrompt = template.replace('[A]', row.contextPrompt);
     } else { 
         const nonCharacterInstruction = `\n\n**SCENE GENERATION:** No specific main characters. Use provided images for ART STYLE consistency only.`;
         const refCharacterIndex = characters.findIndex(c => c && c.images.length > 0);
         let sceneTemplate;
-
         if (refCharacterIndex === -1) {
-             // No reference images at all
             sceneTemplate = originalTemplate.replace(/^\*\*YÊU CẦU QUAN TRỌNG:[\s\S]*?Vẽ lại nhân vật tôi gửi, với chính xác ngoại hình, trang phục nhưng customize theo phong cách sau/s, 'Create an image with consistent art style.');
         } else {
-             // Has reference images but no character selected for this row
-            sceneTemplate = originalTemplate.replace(/^\*\*YÊU CẦU QUAN TRỌNG:[\s\S]*?Vẽ lại nhân vật tôi gửi, với chính xác ngoại hình, trang phục nhưng customize theo phong cách sau/s, `**STYLE REFERENCE ONLY:** Use the provided images for ART STYLE reference (lighting, texture, color palette) ONLY. DO NOT include the characters from the reference images.`);
+            sceneTemplate = originalTemplate.replace(/^\*\*YÊU CẦU QUAN TRỌNG:[\s\S]*?Vẽ lại nhân vật tôi gửi, với chính xác ngoại hình, trang phục nhưng customize theo phong cách sau/s, `**STYLE REFERENCE ONLY:** Use the provided images for ART STYLE reference ONLY. DO NOT include the characters from the reference images.`);
         }
         sceneTemplate = sceneTemplate.replace(/Chi tiết nhân vật:[\s\S]*?\+ Phong cách vẽ bối cảnh:/s, '+ Phong cách vẽ bối cảnh:');
         sceneTemplate = sceneTemplate.replace('[CHARACTER_STYLE]', '');
@@ -192,117 +142,55 @@ Pay attention to age, gender, ethnicity, and clothing described in the prompt.`;
     return basePrompt.trim();
 };
 
-export const getPromptAndPartsForRow = ({
-    row,
-    rowIndex,
-    tableData,
-    selectedStyle,
-    characters,
-    defaultCharacterIndices,
-    adjustments,
-}: {
-    row: TableRowData;
-    rowIndex: number;
-    tableData: TableRowData[];
-    selectedStyle: Style;
-    characters: Character[];
-    defaultCharacterIndices: number[];
-    adjustments?: AdjustmentOptions;
-}): { prompt: string; parts: any[] } => {
-    // Ưu tiên sử dụng imagePrompt đã có (do người dùng tạo hoặc chỉnh sửa)
-    // Nếu chưa có thì mới tạo từ getPromptForRow
-    let prompt = row.imagePrompt && row.imagePrompt.trim() !== '' 
-        ? row.imagePrompt 
-        : getPromptForRow(row, selectedStyle, characters);
-
+export const getPromptAndPartsForRow = ({ row, rowIndex, tableData, selectedStyle, characters, defaultCharacterIndices, adjustments }: any): { prompt: string; parts: any[] } => {
+    let prompt = row.imagePrompt && row.imagePrompt.trim() !== '' ? row.imagePrompt : getPromptForRow(row, selectedStyle, characters);
     const parts: any[] = [];
-
     const selectedCharIndices = row.selectedCharacterIndices;
     
-    // Interleave Character Reference Images with Label Text
     if (selectedCharIndices.length > 0 && selectedCharIndices[0] >= 0) {
         parts.push({ text: "**REFERENCE MATERIAL:**\n" }); 
-        selectedCharIndices.forEach((charIndex) => {
+        selectedCharIndices.forEach((charIndex: number) => {
             const character = characters[charIndex];
             if (character && character.images.length > 0) {
-                // Add label before images to help AI identify who is who
                 parts.push({ text: `\n[REFERENCE IMAGE FOR: "${character.name}"]` });
-                
-                character.images.forEach((imgDataUrl) => {
+                character.images.forEach((imgDataUrl: string) => {
                     const [header, base64Data] = imgDataUrl.split(',');
                     const mimeType = header.match(/data:(.*);base64/)?.[1] || 'image/png';
-                    parts.push({
-                        inlineData: {
-                            data: base64Data,
-                            mimeType: mimeType,
-                        },
-                    });
+                    parts.push({ inlineData: { data: base64Data, mimeType: mimeType } });
                 });
             }
         });
         parts.push({ text: "\n**END OF REFERENCES.**\n\n" }); 
     } else { 
-        // Add Style Reference Image if no character is selected
-        const refCharacter = characters.find((c) => c && c.images.length > 0);
+        const refCharacter = characters.find((c: any) => c && c.images.length > 0);
         if (refCharacter && refCharacter.images.length > 0) {
             parts.push({ text: "**STYLE REFERENCE IMAGE:**" });
             const imgDataUrl = refCharacter.images[0]; 
             const [header, base64Data] = imgDataUrl.split(',');
             const mimeType = header.match(/data:(.*);base64/)?.[1] || 'image/png';
-            parts.push({
-                inlineData: {
-                    data: base64Data,
-                    mimeType: mimeType,
-                },
-            });
+            parts.push({ inlineData: { data: base64Data, mimeType: mimeType } });
         }
     }
 
     if (adjustments) {
-        const ADJUSTMENT_OPTIONS = {
-            RE_EVALUATE_LOGIC: 'Logic check: Re-read the scene to ensure logical consistency.',
-            BYPASS_POLICY: 'Policy Compliance: Ensure the image adheres to safety guidelines while maintaining the scene\'s intent.',
-            STYLE_CONSISTENCY: 'Style Consistency: Match the art style of previous successful images.',
-            CHARACTER_STYLE: 'Character Fidelity: Strictly adhere to the character description and reference.',
-            CHARACTER_CONSISTENCY: 'Character Consistency: Ensure the character looks the same as in the reference.',
-            COSTUME_CONSISTENCY: 'Costume Consistency: Keep the clothing consistent with the scene context.',
-            CAMERA_POSITION: 'Camera Angle: Change the camera angle (e.g., from high to low or vice versa).',
-            CHARACTER_ANGLE: 'Character Angle: Show the character from a different perspective (e.g., side view, back view).',
-            MATCH_ASPECT_RATIO: 'Aspect Ratio: Maintain the aspect ratio of the previous image.',
-        };
-
         let adjustmentText = "\n\n**ADJUSTMENTS:** Based on feedback, apply the following changes:";
-        
-        adjustments.options.forEach((opt) => {
-            const description = ADJUSTMENT_OPTIONS[opt as keyof typeof ADJUSTMENT_OPTIONS];
-            if (description) {
-                adjustmentText += `\n- ${description}`;
-            }
-        });
-
+        if (adjustments.options.length > 0) adjustmentText += "\n- Apply selected adjustments logic.";
         if (adjustments.manualPrompt) {
             adjustmentText += `\n- User Manual Request: ${adjustments.manualPrompt}`;
-            
             const sceneMatches = adjustments.manualPrompt.match(/\[scene_([\w.-]+)\]/g);
             if (sceneMatches) {
                 adjustmentText += `\n- Visual References provided from other scenes:`;
-                sceneMatches.forEach((match) => {
+                sceneMatches.forEach((match: string) => {
                     const sceneId = match.match(/\[scene_([\w.-]+)\]/)?.[1];
                     if (sceneId) {
-                        const referencedRow = tableData.find((r) => String(r.originalRow[0]) === sceneId);
+                        const referencedRow = tableData.find((r: any) => String(r.originalRow[0]) === sceneId);
                         if (referencedRow) {
                             const mainIndex = referencedRow.mainImageIndex > -1 ? referencedRow.mainImageIndex : (referencedRow.generatedImages.length > 0 ? referencedRow.generatedImages.length - 1 : -1);
                             const mainAsset = mainIndex !== -1 ? referencedRow.generatedImages[mainIndex] : null;
-
                             if (mainAsset && mainAsset.startsWith('data:image')) {
                                 const [header, base64Data] = mainAsset.split(',');
                                 const mimeType = header.match(/data:(.*);base64/)?.[1] || 'image/png';
-                                parts.push({
-                                    inlineData: {
-                                        data: base64Data,
-                                        mimeType: mimeType,
-                                    },
-                                });
+                                parts.push({ inlineData: { data: base64Data, mimeType: mimeType } });
                                 adjustmentText += ` (Image included for Scene ${sceneId})`;
                             }
                         }
@@ -310,20 +198,14 @@ export const getPromptAndPartsForRow = ({
                 });
             }
         }
-        
-        if (adjustments.options.length > 0 || adjustments.manualPrompt) {
-            prompt += adjustmentText;
-        }
+        prompt += adjustmentText;
     }
-
     parts.push({ text: prompt });
-
     return { prompt, parts };
 };
 
 const addTimestampToFilename = (filename: string): string => {
     const now = new Date();
-    // Format: YYYYMMDD_HHmmss
     const timestamp = `${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, '0')}${String(now.getDate()).padStart(2, '0')}_${String(now.getHours()).padStart(2, '0')}${String(now.getMinutes()).padStart(2, '0')}${String(now.getSeconds()).padStart(2, '0')}`;
     const dotIndex = filename.lastIndexOf('.');
     if (dotIndex === -1) return `${filename}_${timestamp}`;
@@ -342,22 +224,20 @@ const downloadFile = (blob: Blob, filename: string) => {
     URL.revokeObjectURL(url);
 };
 
-export const exportPromptsToTxt = (tableData: TableRowData[], filename: string) => {
+export const exportPromptsToTxt = (tableData: TableRowData[], filename: string): boolean => {
     const prompts = tableData
         .filter(row => row.videoPrompt && row.videoPrompt.trim())
         .map(row => row.videoPrompt!.trim());
 
-    if (prompts.length === 0) {
-        alert('Không có prompt video nào được tạo để xuất.');
-        return;
-    }
+    if (prompts.length === 0) return false;
 
     const content = prompts.join('\n\n');
     const blob = new Blob([content], { type: 'text/plain;charset=utf-8' });
     downloadFile(blob, filename);
+    return true;
 };
 
-export const exportImagePromptsToTxt = (tableData: TableRowData[], filename: string) => {
+export const exportImagePromptsToTxt = (tableData: TableRowData[], filename: string): boolean => {
     const prompts = tableData
         .map(row => {
             const stt = row.originalRow[0];
@@ -367,14 +247,12 @@ export const exportImagePromptsToTxt = (tableData: TableRowData[], filename: str
         })
         .filter(p => p !== null);
 
-    if (prompts.length === 0) {
-        alert('Không có dữ liệu prompt ảnh để xuất.');
-        return;
-    }
+    if (prompts.length === 0) return false;
 
     const content = prompts.join('\n\n' + '-'.repeat(40) + '\n\n');
     const blob = new Blob([content], { type: 'text/plain;charset=utf-8' });
     downloadFile(blob, filename);
+    return true;
 };
 
 const getValidRowsForJsonExport = (tableData: TableRowData[]) => {
@@ -395,21 +273,15 @@ const getValidRowsForJsonExport = (tableData: TableRowData[]) => {
     .filter((row): row is { asset: string; videoPrompt: string } => row !== null);
 };
 
-export const createFramesJsonWithImgAndPrompt = (tableData: TableRowData[], filename: string) => {
+export const createFramesJsonWithImgAndPrompt = (tableData: TableRowData[], filename: string): boolean => {
     const validRows = getValidRowsForJsonExport(tableData);
-
-    if (validRows.length === 0) {
-        alert('Không có ảnh nào được tạo để xuất ra JSON.');
-        return;
-    }
+    if (validRows.length === 0) return false;
 
     const frames = validRows.map((row, index, arr) => {
         const extension = getExtensionFromDataUrl(row.asset);
         const startFrameName = `${index + 1}${extension}`;
-        
         const nextRow = arr[index + 1];
         const endFrameName = nextRow ? `${index + 2}${getExtensionFromDataUrl(nextRow.asset)}` : "";
-
         return {
             startFrameName,
             endFrameName,
@@ -422,10 +294,10 @@ export const createFramesJsonWithImgAndPrompt = (tableData: TableRowData[], file
     const dataStr = JSON.stringify(jsonData, null, 2);
     const blob = new Blob([dataStr], { type: 'application/json' });
     downloadFile(blob, filename);
+    return true;
 };
 
-
-export const createProjectAssetsZip = (tableData: TableRowData[], filename: string) => {
+export const createProjectAssetsZip = (tableData: TableRowData[], filename: string): boolean => {
     const zip = new JSZip();
     let assetCount = 0;
 
@@ -434,13 +306,10 @@ export const createProjectAssetsZip = (tableData: TableRowData[], filename: stri
             const mainIndex = row.mainImageIndex ?? row.generatedImages.length - 1;
             const mainAsset = row.generatedImages[mainIndex];
             if (!mainAsset) return;
-
             const [header, base64Data] = mainAsset.split(',');
-            
             let extension = '.png'; 
             if (header.includes('image/jpeg')) extension = '.jpeg';
             if (header.includes('video/mp4')) extension = '.mp4';
-            
             const stt = String(row.originalRow[0] || `row_${row.id}`);
             const assetName = `${stt}${extension}`;
             zip.file(assetName, base64Data, { base64: true });
@@ -448,61 +317,47 @@ export const createProjectAssetsZip = (tableData: TableRowData[], filename: stri
         }
     });
 
-    if (assetCount === 0) {
-        alert('No generated assets to download.');
-        return;
-    }
+    if (assetCount === 0) return false;
 
-    zip.generateAsync({ type: 'blob' }).then(content => {
+    zip.generateAsync({ type: 'blob' }).then((content: any) => {
         downloadFile(content, filename);
     });
+    return true;
 };
 
-export const createRowAssetsZip = (row: TableRowData, filename: string) => {
+export const createRowAssetsZip = (row: TableRowData, filename: string): boolean => {
     const zip = new JSZip();
-    
-    if (row.generatedImages.length === 0) {
-        alert('No assets to download for this row.');
-        return;
-    }
+    if (row.generatedImages.length === 0) return false;
     
     row.generatedImages.forEach((asset, index) => {
         const [header, base64Data] = asset.split(',');
         let extension = '.png';
         if (header.includes('image/jpeg')) extension = '.jpeg';
         if (header.includes('video/mp4')) extension = '.mp4';
-        
         const assetName = `Asset_${row.id}_v${index + 1}${extension}`;
         zip.file(assetName, base64Data, { base64: true });
     });
 
-    zip.generateAsync({ type: 'blob' }).then(content => {
+    zip.generateAsync({ type: 'blob' }).then((content: any) => {
         downloadFile(content, filename);
     });
+    return true;
 };
 
 export const parseMarkdownTables = (text: string): string[][] => {
     const allRows: string[][] = [];
     const lines = text.split('\n');
     let inTable = false;
-
     for (const line of lines) {
         const trimmedLine = line.trim();
-        
         const isSeparator = trimmedLine.startsWith('|') && /\|.*---.*\|/.test(trimmedLine);
-        
         if (isSeparator) {
             inTable = true;
             continue; 
         }
-
         if (inTable) {
             if (trimmedLine.startsWith('|') && trimmedLine.endsWith('|')) {
-                const cells = trimmedLine
-                    .slice(1, -1) 
-                    .split('|')
-                    .map(cell => cell.trim());
-                
+                const cells = trimmedLine.slice(1, -1).split('|').map(cell => cell.trim());
                 const isAnotherSeparator = cells.every(c => /^-+:?-+$/.test(c));
                 if (!isAnotherSeparator && cells.some(c => c.length > 0)) {
                     allRows.push(cells);

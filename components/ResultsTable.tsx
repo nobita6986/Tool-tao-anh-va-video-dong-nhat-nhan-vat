@@ -4,6 +4,7 @@ import type { TableRowData, Character, Style } from '../types';
 import { ResultRow } from './ResultRow';
 import { InfoIcon } from './icons';
 import { Tooltip } from './Tooltip';
+import { ToastType } from './Toast';
 
 interface ResultsTableProps {
   tableData: TableRowData[];
@@ -21,6 +22,7 @@ interface ResultsTableProps {
   onViewImage: (imageUrl: string, rowId: number) => void;
   onOpenHistory: (row: TableRowData) => void;
   onSendToVideo: (rowId: number) => void;
+  showToast: (message: string, type: ToastType) => void;
 }
 
 export const ResultsTable: React.FC<ResultsTableProps> = ({ 
@@ -38,7 +40,8 @@ export const ResultsTable: React.FC<ResultsTableProps> = ({
   onOpenHistory, 
   onSendToVideo, 
   onGenerateVideoPrompt, 
-  defaultCharacterIndices 
+  defaultCharacterIndices,
+  showToast
 }) => {
   const headers = [
     { text: "STT", tooltip: "Số thứ tự phân cảnh. Dùng để định danh và gán nhân vật tự động." },

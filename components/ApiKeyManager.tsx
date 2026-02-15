@@ -2,6 +2,7 @@
 import React, { useState } from 'react';
 import { GoogleGenAI } from '@google/genai';
 import type { GeminiModel, ImageGenModel } from '../types';
+import { ToastType } from './Toast';
 
 interface ApiKeyManagerProps {
   isOpen: boolean;
@@ -12,6 +13,7 @@ interface ApiKeyManagerProps {
   onSelectModel: (model: GeminiModel) => void;
   selectedImageModel: ImageGenModel;
   onSelectImageModel: (model: ImageGenModel) => void;
+  showToast: (message: string, type: ToastType) => void;
 }
 
 type ValidationStatus = 'idle' | 'validating' | 'valid' | 'invalid';
@@ -31,7 +33,8 @@ const IMAGE_MODELS: { value: ImageGenModel; label: string; desc: string }[] = [
 export const ApiKeyManager: React.FC<ApiKeyManagerProps> = ({ 
     isOpen, onClose, apiKeys, setApiKeys, 
     selectedModel, onSelectModel,
-    selectedImageModel, onSelectImageModel
+    selectedImageModel, onSelectImageModel,
+    showToast
 }) => {
   const [newKey, setNewKey] = useState('');
   const [validationStatus, setValidationStatus] = useState<ValidationStatus>('idle');
@@ -64,8 +67,12 @@ export const ApiKeyManager: React.FC<ApiKeyManagerProps> = ({
         setValidationStatus('valid');
         setApiKeys([...apiKeys, trimmedKey]);
         setNewKey('');
+        showToast('API Key đã được thêm thành công', 'success');
         setTimeout(() => setValidationStatus('idle'), 2000);
-    } else setValidationStatus('invalid');
+    } else {
+        setValidationStatus('invalid');
+        showToast('API Key không hợp lệ', 'error');
+    }
   };
 
   return (

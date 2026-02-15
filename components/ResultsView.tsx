@@ -3,6 +3,7 @@ import React from 'react';
 import type { Style, TableRowData, Character } from '../types';
 import { ResultsTable } from './ResultsTable';
 import { FileDropzone } from './FileDropzone';
+import { ToastType } from './Toast';
 
 interface ResultsViewProps {
   selectedStyle: Style;
@@ -23,6 +24,7 @@ interface ResultsViewProps {
   onOpenHistory: (row: TableRowData) => void;
   onSendToVideo: (rowId: number) => void;
   isProcessing?: boolean;
+  showToast: (message: string, type: ToastType) => void;
 }
 
 export const ResultsView: React.FC<ResultsViewProps> = ({
@@ -42,6 +44,7 @@ export const ResultsView: React.FC<ResultsViewProps> = ({
   defaultCharacterIndices,
   onViewImage,
   isProcessing = false,
+  showToast,
   ...rest
 }) => {
   return (
@@ -120,6 +123,7 @@ export const ResultsView: React.FC<ResultsViewProps> = ({
           onViewImage={onViewImage}
           onUpdateRow={rest.onUpdateRow}
           onSendToVideo={rest.onSendToVideo}
+          showToast={showToast}
         />
       )}
     </section>

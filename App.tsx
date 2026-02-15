@@ -19,6 +19,7 @@ import { ChatModal } from './components/ChatModal';
 import { ApiKeyManager } from './components/ApiKeyManager';
 import { ScriptProcessingModal, SegmentationMethod } from './components/ScriptProcessingModal';
 import { Tooltip } from './components/Tooltip';
+import { ToastContainer, ToastMessage, ToastType } from './components/Toast';
 
 const normalizeName = (name: string): string => {
   if (!name) return '';
@@ -69,6 +70,7 @@ export default function App() {
   const [videoPromptNote, setVideoPromptNote] = useState('');
   const [isProcessingScript, setIsProcessingScript] = useState(false);
   const [aspectRatio, setAspectRatio] = useState<AspectRatio>('16:9');
+  const [toasts, setToasts] = useState<ToastMessage[]>([]);
   
   // Model xử lý văn bản (Text Model)
   const [selectedModel, setSelectedModel] = useState<GeminiModel>(() => {
@@ -103,6 +105,15 @@ export default function App() {
     localStorage.setItem('theme', theme);
   }, [theme]);
 
+  const showToast = useCallback((message: string, type: ToastType = 'info') => {
+    const id = Date.now().toString();
+    setToasts(prev => [...prev, { id, message, type }]);
+  }, []);
+
+  const removeToast = useCallback((id: string) => {
+    setToasts(prev => prev.filter(t => t.id !== id));
+  }, []);
+
   const handleUpdateApiKeys = (keys: string[]) => {
     setApiKeys(keys);
     localStorage.setItem('user_api_keys', JSON.stringify(keys));
@@ -111,11 +122,13 @@ export default function App() {
   const handleUpdateModel = (model: GeminiModel) => {
     setSelectedModel(model);
     localStorage.setItem('selected_gemini_model', model);
+    showToast(`Đã chuyển model văn bản sang: ${model}`, 'success');
   };
 
   const handleUpdateImageModel = (model: ImageGenModel) => {
     setSelectedImageModel(model);
     localStorage.setItem('selected_image_model', model);
+    showToast(`Đã chuyển model ảnh sang: ${model}`, 'success');
   };
   
   const toggleTheme = () => setTheme(prevTheme => prevTheme === 'dark' ? 'light' : 'dark');
@@ -163,19 +176,22 @@ export default function App() {
     });
   }, []);
 
-  const handleStyleSelect = useCallback((style: Style) => { setSelectedStyle(style); }, []);
+  const handleStyleSelect = useCallback((style: Style) => { 
+      setSelectedStyle(style); 
+      showToast(`Đã chọn phong cách: ${style.title}`, 'success');
+  }, [showToast]);
+
   const handleBackToStyles = () => { setSelectedStyle(null); setTableData([]); };
   
   const handleUpdateRow = useCallback((updatedRow: TableRowData) => { setTableData(prevData => prevData.map(row => (row.id === updatedRow.id ? updatedRow : row))); }, []);
 
   const handleAutoFillCharacters = useCallback(() => {
-    // Chỉ lấy những nhân vật đã được kích hoạt (nút xanh - defaultCharacterIndices)
     const definedCharacters = characters
         .map((c, i) => ({ name: c.name.trim().toLowerCase(), index: i }))
         .filter(c => c.name.length > 0 && defaultCharacterIndices.includes(c.index));
 
     if (definedCharacters.length === 0) {
-        alert("Vui lòng kích hoạt (nhấn 'Sử dụng nhân vật này') cho ít nhất một nhân vật trước khi sử dụng tính năng tự động điền.");
+        showToast("Vui lòng kích hoạt ít nhất một nhân vật trước khi tự động điền.", 'warning');
         return;
     }
 
@@ -200,12 +216,12 @@ export default function App() {
     });
 
     if (fillCount === 0) {
-        alert("Không tìm thấy tên nhân vật nào (trong danh sách đang sử dụng) khớp với kịch bản.");
+        showToast("Không tìm thấy tên nhân vật nào khớp trong kịch bản.", 'warning');
     } else {
         setTableData(updatedTableData);
-        alert(`Thành công! Đã cập nhật nhân vật cho ${fillCount} phân cảnh.`);
+        showToast(`Đã cập nhật nhân vật cho ${fillCount} phân cảnh.`, 'success');
     }
-  }, [characters, tableData, defaultCharacterIndices]);
+  }, [characters, tableData, defaultCharacterIndices, showToast]);
 
   const handleDocUpload = useCallback(async (file: File, method: SegmentationMethod, customRule?: string) => {
     setIsProcessingScript(true);
@@ -256,13 +272,14 @@ LƯU Ý: Không thêm văn bản thừa ngoài bảng Markdown.`;
                 };
             });
             setTableData(newTableData);
+            showToast('Xử lý kịch bản thành công!', 'success');
         } catch (error: any) {
             const { keyCount } = getAiInstance();
             if (error.message.includes('429') && keyIdx < keyCount - 1) {
                 console.warn(`[AI Engine] Key #${keyIdx + 1} hết hạn mức, đang thử Key #${keyIdx + 2}...`);
                 return runProcessing(keyIdx + 1);
             }
-            alert(`Lỗi xử lý kịch bản: ${error.message}`);
+            showToast(`Lỗi xử lý kịch bản: ${error.message}`, 'error');
         } finally {
             setIsProcessingScript(false);
             setPendingScriptFile(null);
@@ -270,7 +287,7 @@ LƯU Ý: Không thêm văn bản thừa ngoài bảng Markdown.`;
     };
 
     await runProcessing(0);
-  }, [characters, defaultCharacterIndices, getAiInstance, selectedModel]);
+  }, [characters, defaultCharacterIndices, getAiInstance, selectedModel, showToast]);
 
   const generateImage = useCallback(async (rowId: number, adjustments?: AdjustmentOptions, retryCount = 0, keyIdx = 0) => {
     setTableData(prevData => prevData.map(r => r.id === rowId ? { ...r, isGenerating: true, error: keyIdx > 0 ? `Đang thử lại với Key #${keyIdx + 1}...` : null } : r));
@@ -349,8 +366,9 @@ LƯU Ý: Không thêm văn bản thừa ngoài bảng Markdown.`;
       let finalError = errorMessage;
       if (finalError.includes("429")) finalError = "Hạn mức API đã hết trên tất cả các Key. Hãy kiểm tra gói cước hoặc thêm Key mới.";
       setTableData(prev => prev.map(r => r.id === rowId ? { ...r, error: `Lỗi: ${finalError}`, isGenerating: false } : r));
+      showToast(`Lỗi tạo ảnh (Row ${rowId}): ${finalError}`, 'error');
     }
-  }, [getAiInstance, selectedImageModel]);
+  }, [getAiInstance, selectedImageModel, showToast]);
 
   const handleGenerateAllImages = useCallback(async (isRegenerate: boolean = false) => {
     // Nếu isRegenerate là true, lấy tất cả các dòng chưa đang xử lý
@@ -358,7 +376,7 @@ LƯU Ý: Không thêm văn bản thừa ngoài bảng Markdown.`;
     const rowsToProcess = tableData.filter(r => !r.isGenerating && (isRegenerate || r.generatedImages.length === 0));
     
     if (rowsToProcess.length === 0) {
-        alert(isRegenerate ? "Không có phân cảnh nào để tạo lại." : "Không có ảnh mới cần tạo.");
+        showToast(isRegenerate ? "Không có phân cảnh nào để tạo lại." : "Không có ảnh mới cần tạo.", 'info');
         return;
     }
 
@@ -368,18 +386,21 @@ LƯU Ý: Không thêm văn bản thừa ngoài bảng Markdown.`;
         }
     }
 
+    showToast(`Bắt đầu tạo ${rowsToProcess.length} ảnh...`, 'info');
+
     for (const row of rowsToProcess) {
         await generateImage(row.id);
         await delay(5000 + Math.random() * 2000); 
     }
-  }, [tableData, generateImage]);
+    showToast('Hoàn tất quy trình tạo ảnh hàng loạt.', 'success');
+  }, [tableData, generateImage, showToast]);
 
   const generateVideoPromptForRow = useCallback(async (rowId: number, keyIdx = 0) => {
     const rowIndex = tableData.findIndex(row => row.id === rowId);
     if (rowIndex === -1) return;
     const row = tableData[rowIndex];
     const mainAsset = row.mainImageIndex > -1 ? row.generatedImages[row.mainImageIndex] : (row.generatedImages.length > 0 ? row.generatedImages[row.generatedImages.length - 1] : null);
-    if (!mainAsset) { handleUpdateRow({ ...row, error: "Cần có ảnh chính để tạo prompt video." }); return; }
+    if (!mainAsset) { handleUpdateRow({ ...row, error: "Cần có ảnh chính để tạo prompt video." }); showToast('Cần có ảnh chính để tạo prompt video', 'warning'); return; }
     setTableData(prevData => prevData.map(r => r.id === rowId ? { ...r, isGeneratingPrompt: true, error: null, videoPrompt: '' } : r));
     try {
         const { ai } = getAiInstance(keyIdx);
@@ -397,8 +418,9 @@ LƯU Ý: Không thêm văn bản thừa ngoài bảng Markdown.`;
             return generateVideoPromptForRow(rowId, keyIdx + 1);
         }
         handleUpdateRow({ ...tableData.find(r => r.id === rowId)!, error: `Lỗi: ${err.message}` });
+        showToast(`Lỗi tạo prompt video: ${err.message}`, 'error');
     } finally { setTableData(prevData => prevData.map(r => r.id === rowId ? { ...r, isGeneratingPrompt: false } : r)); }
-  }, [tableData, handleUpdateRow, videoPromptNote, getAiInstance, selectedModel]);
+  }, [tableData, handleUpdateRow, videoPromptNote, getAiInstance, selectedModel, showToast]);
 
   // Tạo hàng loạt prompt ảnh cuối cùng (Image Prompt)
   const handleCreateAllImagePrompts = useCallback(() => {
@@ -408,18 +430,51 @@ LƯU Ý: Không thêm văn bản thừa ngoài bảng Markdown.`;
         return { ...row, imagePrompt: finalPrompt };
     });
     setTableData(updatedTableData);
-    alert('Đã tạo xong prompt cho tất cả các ô Image.');
-  }, [tableData, selectedStyle, characters]);
+    showToast('Đã tạo xong prompt cho tất cả các ô Image.', 'success');
+  }, [tableData, selectedStyle, characters, showToast]);
 
   const handleSetMainImage = useCallback((rowId: number, index: number) => {
     setTableData(prevData => prevData.map(row => (row.id === rowId ? { ...row, mainImageIndex: index } : row)));
-  }, []);
+    showToast('Đã đặt ảnh chính thành công.', 'success');
+  }, [showToast]);
 
   const handleDownloadRowAssets = useCallback((row: TableRowData) => {
-    createRowAssetsZip(row, `assets_row_${row.id}.zip`);
-  }, []);
+    if (!createRowAssetsZip(row, `assets_row_${row.id}.zip`)) {
+        showToast('Không có dữ liệu để tải xuống cho dòng này.', 'warning');
+    } else {
+        showToast('Đang tải xuống tài sản của dòng...', 'success');
+    }
+  }, [showToast]);
 
-  const handleResetApp = () => window.location.reload();
+  const handleDownloadAllAssets = useCallback(() => {
+     if (!createProjectAssetsZip(tableData, `images-assets.zip`)) {
+         showToast('Không có ảnh nào để tải xuống.', 'warning');
+     } else {
+         showToast('Đang nén và tải xuống toàn bộ ảnh...', 'success');
+     }
+  }, [tableData, showToast]);
+
+  const handleExportPrompts = useCallback(() => {
+      if (!exportPromptsToTxt(tableData, `Scripts.txt`)) {
+          showToast('Không có prompt video nào để xuất.', 'warning');
+      } else {
+          showToast('Đã xuất file Scripts.txt', 'success');
+      }
+  }, [tableData, showToast]);
+
+  const handleExportImagePrompts = useCallback(() => {
+      if (!exportImagePromptsToTxt(tableData, `ImagePrompts.txt`)) {
+          showToast('Không có prompt ảnh nào để xuất.', 'warning');
+      } else {
+          showToast('Đã xuất file ImagePrompts.txt', 'success');
+      }
+  }, [tableData, showToast]);
+
+  const handleResetApp = () => {
+      if (window.confirm("Bạn có chắc chắn muốn tải lại trang? Dữ liệu chưa lưu sẽ bị mất.")) {
+          window.location.reload();
+      }
+  };
 
   const handleSendMessageToAI = async (prompt: string, keyIdx = 0) => {
     const updatedMessages: ChatMessage[] = [...chatMessages, { role: 'user', content: prompt }];
@@ -455,6 +510,7 @@ LƯU Ý: Không thêm văn bản thừa ngoài bảng Markdown.`;
 
   return (
     <>
+      <ToastContainer toasts={toasts} removeToast={removeToast} />
       <header className="sticky top-0 z-50 bg-white/80 dark:bg-[#020a06]/80 backdrop-blur-md border-b border-gray-200 dark:border-[#1f4d3a] py-3 px-6 header-bg">
         <div className="container mx-auto">
           <div className="flex flex-wrap justify-between items-center gap-x-6 gap-y-3">
@@ -466,17 +522,17 @@ LƯU Ý: Không thêm văn bản thừa ngoài bảng Markdown.`;
                     </button>
                </Tooltip>
                <Tooltip content="Tải xuống tất cả ảnh đã tạo dưới dạng file ZIP">
-                    <button onClick={() => createProjectAssetsZip(tableData, `images-assets.zip`)} className="flex-shrink-0 h-10 font-semibold py-2 px-4 rounded-lg bg-gray-200 dark:bg-[#0f3a29] text-gray-800 dark:text-green-300 border border-gray-300 dark:border-green-700 hover:bg-orange-100 hover:text-orange-700 transition-colors whitespace-nowrap shadow-sm">
+                    <button onClick={handleDownloadAllAssets} className="flex-shrink-0 h-10 font-semibold py-2 px-4 rounded-lg bg-gray-200 dark:bg-[#0f3a29] text-gray-800 dark:text-green-300 border border-gray-300 dark:border-green-700 hover:bg-orange-100 hover:text-orange-700 transition-colors whitespace-nowrap shadow-sm">
                         Tải toàn bộ ảnh
                     </button>
                </Tooltip>
                <Tooltip content="Xuất danh sách prompt video ra file TXT">
-                    <button onClick={() => exportPromptsToTxt(tableData, `Scripts.txt`)} className="flex-shrink-0 h-10 font-semibold py-2 px-4 rounded-lg bg-gray-200 dark:bg-[#0f3a29] text-gray-800 dark:text-green-300 border border-gray-300 dark:border-green-700 hover:bg-orange-100 hover:text-orange-700 transition-colors whitespace-nowrap shadow-sm">
+                    <button onClick={handleExportPrompts} className="flex-shrink-0 h-10 font-semibold py-2 px-4 rounded-lg bg-gray-200 dark:bg-[#0f3a29] text-gray-800 dark:text-green-300 border border-gray-300 dark:border-green-700 hover:bg-orange-100 hover:text-orange-700 transition-colors whitespace-nowrap shadow-sm">
                         Tải prompt video
                     </button>
                </Tooltip>
                <Tooltip content="Xuất danh sách prompt ảnh (Image Prompts) ra file TXT">
-                    <button onClick={() => exportImagePromptsToTxt(tableData, `ImagePrompts.txt`)} className="flex-shrink-0 h-10 font-semibold py-2 px-4 rounded-lg bg-gray-200 dark:bg-[#0f3a29] text-gray-800 dark:text-green-300 border border-gray-300 dark:border-green-700 hover:bg-orange-100 hover:text-orange-700 transition-colors whitespace-nowrap shadow-sm">
+                    <button onClick={handleExportImagePrompts} className="flex-shrink-0 h-10 font-semibold py-2 px-4 rounded-lg bg-gray-200 dark:bg-[#0f3a29] text-gray-800 dark:text-green-300 border border-gray-300 dark:border-green-700 hover:bg-orange-100 hover:text-orange-700 transition-colors whitespace-nowrap shadow-sm">
                         Tải prompt ảnh
                     </button>
                </Tooltip>
@@ -515,6 +571,7 @@ LƯU Ý: Không thêm văn bản thừa ngoài bảng Markdown.`;
                   return { ai, rotate: () => {} }; 
               }}
               onViewImage={setPreviewImageUrl}
+              showToast={showToast}
             />
             <ResultsView 
                 selectedStyle={selectedStyle} 
@@ -529,12 +586,13 @@ LƯU Ý: Không thêm văn bản thừa ngoài bảng Markdown.`;
                 onGenerateVideoPrompt={generateVideoPromptForRow} 
                 onGenerateAllVideoPrompts={() => tableData.forEach(r => generateVideoPromptForRow(r.id))}
                 onGenerateAllContextPrompts={handleCreateAllImagePrompts}
-                onDownloadAll={() => createProjectAssetsZip(tableData, `images_assets.zip`)} 
+                onDownloadAll={handleDownloadAllAssets} 
                 onViewImage={(imageUrl, rowId) => setViewingImage({ imageUrl, rowId })} 
                 onStartRemake={setRemakingRow} 
                 onOpenHistory={setHistoryRow} 
                 onSendToVideo={(id) => generateVideoPromptForRow(id)} 
                 isProcessing={isProcessingScript} 
+                showToast={showToast}
             />
           </div>
         )}
@@ -556,6 +614,7 @@ LƯU Ý: Không thêm văn bản thừa ngoài bảng Markdown.`;
         onSelectModel={handleUpdateModel} 
         selectedImageModel={selectedImageModel}
         onSelectImageModel={handleUpdateImageModel}
+        showToast={showToast}
       />
 
       <ScriptProcessingModal 
