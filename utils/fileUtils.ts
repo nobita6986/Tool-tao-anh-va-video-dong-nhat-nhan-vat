@@ -224,34 +224,46 @@ const downloadFile = (blob: Blob, filename: string) => {
     URL.revokeObjectURL(url);
 };
 
-export const exportPromptsToTxt = (tableData: TableRowData[], filename: string): boolean => {
-    const prompts = tableData
+export const exportVideoPromptsToExcel = (tableData: TableRowData[], filename: string): boolean => {
+    const rows = tableData
         .filter(row => row.videoPrompt && row.videoPrompt.trim())
-        .map(row => row.videoPrompt!.trim());
+        .map(row => [row.originalRow[0], row.videoPrompt!.trim()]);
 
-    if (prompts.length === 0) return false;
+    if (rows.length === 0) return false;
 
-    const content = prompts.join('\n\n');
-    const blob = new Blob([content], { type: 'text/plain;charset=utf-8' });
-    downloadFile(blob, filename);
+    const header = ['Scene', 'Prompt'];
+    const data = [header, ...rows];
+    
+    const worksheet = XLSX.utils.aoa_to_sheet(data);
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, "Video Prompts");
+    
+    const finalFilename = addTimestampToFilename(filename);
+    XLSX.writeFile(workbook, finalFilename);
     return true;
 };
 
-export const exportImagePromptsToTxt = (tableData: TableRowData[], filename: string): boolean => {
-    const prompts = tableData
+export const exportImagePromptsToExcel = (tableData: TableRowData[], filename: string): boolean => {
+    const rows = tableData
         .map(row => {
             const stt = row.originalRow[0];
             const promptContent = row.imagePrompt || row.contextPrompt;
             if (!promptContent || !promptContent.trim()) return null;
-            return `Scene ${stt}:\n${promptContent.trim()}`;
+            return [stt, promptContent.trim()];
         })
-        .filter(p => p !== null);
+        .filter(r => r !== null);
 
-    if (prompts.length === 0) return false;
+    if (rows.length === 0) return false;
 
-    const content = prompts.join('\n\n' + '-'.repeat(40) + '\n\n');
-    const blob = new Blob([content], { type: 'text/plain;charset=utf-8' });
-    downloadFile(blob, filename);
+    const header = ['Scene', 'Prompt'];
+    const data = [header, ...rows];
+    
+    const worksheet = XLSX.utils.aoa_to_sheet(data);
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, "Image Prompts");
+    
+    const finalFilename = addTimestampToFilename(filename);
+    XLSX.writeFile(workbook, finalFilename);
     return true;
 };
 

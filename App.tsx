@@ -10,7 +10,7 @@ import { ImageModal } from './components/ImageModal';
 import { SimpleImageModal } from './components/SimpleImageModal';
 import { RemakeModal } from './components/RemakeModal';
 import { ConfirmationModal } from './components/ConfirmationModal';
-import { createProjectAssetsZip, readExcelFile, createRowAssetsZip, exportPromptsToTxt, exportImagePromptsToTxt, createFramesJsonWithImgAndPrompt, readTextFile, parseMarkdownTables } from './utils/fileUtils';
+import { createProjectAssetsZip, readExcelFile, createRowAssetsZip, exportVideoPromptsToExcel, exportImagePromptsToExcel, createFramesJsonWithImgAndPrompt, readTextFile, parseMarkdownTables } from './utils/fileUtils';
 import { FileDropzone } from './components/FileDropzone';
 import { VersionHistoryModal } from './components/VersionHistoryModal';
 import { SunIcon, MoonIcon } from './components/icons';
@@ -472,18 +472,18 @@ LƯU Ý: Không thêm văn bản thừa ngoài bảng Markdown.`;
   }, [tableData, showToast]);
 
   const handleExportPrompts = useCallback(() => {
-      if (!exportPromptsToTxt(tableData, `Scripts.txt`)) {
+      if (!exportVideoPromptsToExcel(tableData, `Scripts.xlsx`)) {
           showToast('Không có prompt video nào để xuất.', 'warning');
       } else {
-          showToast('Đã xuất file Scripts.txt', 'success');
+          showToast('Đã xuất file Scripts.xlsx', 'success');
       }
   }, [tableData, showToast]);
 
   const handleExportImagePrompts = useCallback(() => {
-      if (!exportImagePromptsToTxt(tableData, `ImagePrompts.txt`)) {
+      if (!exportImagePromptsToExcel(tableData, `ImagePrompts.xlsx`)) {
           showToast('Không có prompt ảnh nào để xuất.', 'warning');
       } else {
-          showToast('Đã xuất file ImagePrompts.txt', 'success');
+          showToast('Đã xuất file ImagePrompts.xlsx', 'success');
       }
   }, [tableData, showToast]);
 
@@ -524,6 +524,8 @@ LƯU Ý: Không thêm văn bản thừa ngoài bảng Markdown.`;
   const handleInitiateScriptUpload = (file: File) => {
     setPendingScriptFile(file);
   };
+  
+  const hasGeneratedImages = tableData.some(row => row.generatedImages.length > 0);
 
   return (
     <>
@@ -533,24 +535,32 @@ LƯU Ý: Không thêm văn bản thừa ngoài bảng Markdown.`;
           <div className="flex flex-wrap justify-between items-center gap-x-6 gap-y-3">
             <h1 onClick={handleResetApp} className="text-2xl font-bold tracking-wider gradient-text cursor-pointer">StudyAI86</h1>
             <div className="flex items-center flex-wrap justify-end gap-2">
-               <Tooltip content="Cấu hình API Key và Model AI">
-                    <button onClick={() => setIsApiKeyManagerOpen(true)} className="flex-shrink-0 h-10 font-bold py-2 px-4 rounded-lg bg-green-600 text-white hover:bg-green-700 transition-colors shadow-sm">
-                        API & Model
+               <Tooltip content="Xuất danh sách prompt ảnh (Image Prompts) ra file Excel">
+                    <button onClick={handleExportImagePrompts} className="flex-shrink-0 h-10 font-semibold py-2 px-4 rounded-lg bg-gray-200 dark:bg-[#0f3a29] text-gray-800 dark:text-green-300 border border-gray-300 dark:border-green-700 hover:bg-orange-100 hover:text-orange-700 transition-colors whitespace-nowrap shadow-sm">
+                        Tải prompt ảnh
                     </button>
                </Tooltip>
-               <Tooltip content="Tải xuống tất cả ảnh đã tạo dưới dạng file ZIP">
-                    <button onClick={handleDownloadAllAssets} className="flex-shrink-0 h-10 font-semibold py-2 px-4 rounded-lg bg-gray-200 dark:bg-[#0f3a29] text-gray-800 dark:text-green-300 border border-gray-300 dark:border-green-700 hover:bg-orange-100 hover:text-orange-700 transition-colors whitespace-nowrap shadow-sm">
-                        Tải toàn bộ ảnh
-                    </button>
-               </Tooltip>
-               <Tooltip content="Xuất danh sách prompt video ra file TXT">
+               <Tooltip content="Xuất danh sách prompt video ra file Excel">
                     <button onClick={handleExportPrompts} className="flex-shrink-0 h-10 font-semibold py-2 px-4 rounded-lg bg-gray-200 dark:bg-[#0f3a29] text-gray-800 dark:text-green-300 border border-gray-300 dark:border-green-700 hover:bg-orange-100 hover:text-orange-700 transition-colors whitespace-nowrap shadow-sm">
                         Tải prompt video
                     </button>
                </Tooltip>
-               <Tooltip content="Xuất danh sách prompt ảnh (Image Prompts) ra file TXT">
-                    <button onClick={handleExportImagePrompts} className="flex-shrink-0 h-10 font-semibold py-2 px-4 rounded-lg bg-gray-200 dark:bg-[#0f3a29] text-gray-800 dark:text-green-300 border border-gray-300 dark:border-green-700 hover:bg-orange-100 hover:text-orange-700 transition-colors whitespace-nowrap shadow-sm">
-                        Tải prompt ảnh
+               <Tooltip content={hasGeneratedImages ? "Tải xuống tất cả ảnh đã tạo dưới dạng file ZIP" : "Chức năng chỉ khả dụng khi có ảnh đã tạo"}>
+                    <button 
+                        onClick={handleDownloadAllAssets} 
+                        disabled={!hasGeneratedImages}
+                        className={`flex-shrink-0 h-10 font-semibold py-2 px-4 rounded-lg border transition-colors whitespace-nowrap shadow-sm ${
+                            hasGeneratedImages 
+                            ? "bg-gray-200 dark:bg-[#0f3a29] text-gray-800 dark:text-green-300 border-gray-300 dark:border-green-700 hover:bg-orange-100 hover:text-orange-700" 
+                            : "bg-gray-100 dark:bg-gray-800 text-gray-400 dark:text-gray-600 border-gray-200 dark:border-gray-700 cursor-not-allowed"
+                        }`}
+                    >
+                        Tải toàn bộ ảnh
+                    </button>
+               </Tooltip>
+               <Tooltip content="Cấu hình API Key và Model AI">
+                    <button onClick={() => setIsApiKeyManagerOpen(true)} className="flex-shrink-0 h-10 font-bold py-2 px-4 rounded-lg bg-green-600 text-white hover:bg-green-700 transition-colors shadow-sm">
+                        API & Model
                     </button>
                </Tooltip>
                <Tooltip content="Chuyển đổi giao diện Sáng/Tối">
