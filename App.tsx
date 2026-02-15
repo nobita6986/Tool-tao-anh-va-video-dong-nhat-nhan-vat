@@ -400,14 +400,31 @@ LƯU Ý: Không thêm văn bản thừa ngoài bảng Markdown.`;
     if (rowIndex === -1) return;
     const row = tableData[rowIndex];
     const mainAsset = row.mainImageIndex > -1 ? row.generatedImages[row.mainImageIndex] : (row.generatedImages.length > 0 ? row.generatedImages[row.generatedImages.length - 1] : null);
-    if (!mainAsset) { handleUpdateRow({ ...row, error: "Cần có ảnh chính để tạo prompt video." }); showToast('Cần có ảnh chính để tạo prompt video', 'warning'); return; }
+    
+    // Ưu tiên dùng imagePrompt, nếu không có thì dùng contextPrompt để tạo prompt video (Text to Video)
+    const textPromptToUse = row.imagePrompt || row.contextPrompt;
+
+    if (!mainAsset && !textPromptToUse) { 
+        handleUpdateRow({ ...row, error: "Cần có ảnh hoặc nội dung prompt để tạo prompt video." }); 
+        showToast('Cần có ảnh hoặc prompt ảnh để tạo prompt video', 'warning'); 
+        return; 
+    }
+
     setTableData(prevData => prevData.map(r => r.id === rowId ? { ...r, isGeneratingPrompt: true, error: null, videoPrompt: '' } : r));
     try {
         const { ai } = getAiInstance(keyIdx);
-        const parts = [
-            { inlineData: { data: mainAsset.split(',')[1], mimeType: 'image/png' } }, 
-            { text: `Từ kịch bản [${row.originalRow[2]}] hãy viết Prompt Video tiếng Anh dài 300 chữ mô tả chuyển động camera 8 giây. ${videoPromptNote}\n\nYÊU CẦU BẮT BUỘC: Chỉ trả về duy nhất đoạn text tiếng Anh chứa nội dung prompt. Tuyệt đối KHÔNG bao gồm bất kỳ lời dẫn, giải thích, tiêu đề (ví dụ: "Here is the prompt", "Video Prompt:") hay định dạng markdown nào.` }
-        ];
+        const parts: any[] = [];
+        const baseInstruction = `Hãy viết Prompt Video tiếng Anh dài 300 chữ mô tả chuyển động camera 8 giây. ${videoPromptNote}\n\nYÊU CẦU BẮT BUỘC: Chỉ trả về duy nhất đoạn text tiếng Anh chứa nội dung prompt. Tuyệt đối KHÔNG bao gồm bất kỳ lời dẫn, giải thích, tiêu đề (ví dụ: "Here is the prompt", "Video Prompt:") hay định dạng markdown nào.`;
+
+        if (mainAsset) {
+            // Trường hợp 1: Có ảnh -> Ưu tiên tạo từ ảnh (Image to Video Prompt)
+            parts.push({ inlineData: { data: mainAsset.split(',')[1], mimeType: 'image/png' } });
+            parts.push({ text: `Từ kịch bản [${row.originalRow[2]}] và hình ảnh cung cấp, ${baseInstruction}` });
+        } else {
+            // Trường hợp 2: Không có ảnh -> Tạo từ text (Text to Video Prompt)
+            parts.push({ text: `Dựa trên mô tả hình ảnh: "${textPromptToUse}"\n\nKịch bản: "${row.originalRow[2]}"\n\n${baseInstruction}` });
+        }
+
         const responseStream = await ai.models.generateContentStream({ model: selectedModel, contents: { parts } });
         for await (const chunk of responseStream) {
             setTableData(prevData => prevData.map(r => r.id === rowId ? { ...r, videoPrompt: (r.videoPrompt || '') + (chunk.text || '') } : r));
