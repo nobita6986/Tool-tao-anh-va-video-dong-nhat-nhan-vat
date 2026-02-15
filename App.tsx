@@ -601,7 +601,7 @@ LƯU Ý: Không thêm văn bản thừa ngoài bảng Markdown.`;
       <header className="sticky top-0 z-50 bg-white/80 dark:bg-[#020a06]/80 backdrop-blur-md border-b border-gray-200 dark:border-[#1f4d3a] py-3 px-6 header-bg">
         <div className="container mx-auto">
           <div className="flex flex-wrap justify-between items-center gap-x-6 gap-y-3">
-            <h1 onClick={handleResetApp} className="text-2xl font-bold tracking-wider gradient-text cursor-pointer">StudyAI86</h1>
+            <h1 onClick={handleResetApp} className="text-2xl font-bold tracking-wider bg-gradient-to-r from-orange-600 to-orange-500 dark:from-orange-400 dark:to-orange-300 bg-clip-text text-transparent cursor-pointer">StudyAI86</h1>
             <div className="flex items-center flex-wrap justify-end gap-2">
                <Tooltip content="Mở thư viện các phiên làm việc đã lưu">
                     <button onClick={() => setIsLibraryOpen(true)} className="flex-shrink-0 h-10 font-bold py-2 px-4 rounded-lg bg-orange-100 text-orange-700 border border-orange-200 hover:bg-orange-200 transition-colors shadow-sm">
