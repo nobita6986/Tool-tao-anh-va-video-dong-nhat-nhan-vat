@@ -1,21 +1,7 @@
 
 import type { Style } from './types';
 
-const BASE_INVARIANT_START = `*YÊU CẦU QUAN TRỌNG: Chỉ sử dụng hình ảnh tôi cung cấp để lấy thông tin về ngoại hình và trang phục của nhân vật. Toàn bộ bối cảnh, môi trường và hành động phải được tạo ra hoàn toàn dựa trên văn bản prompt sau đây. Không được sao chép hay tái sử dụng bối cảnh từ hình ảnh gốc
-
-Hãy vẽ lại nhân vật tôi gửi, với chính xác ngoại hình, trang phục nhưng customize theo phong cách:*`;
-
-const BASE_INVARIANT_END = `*Nếu có yêu cầu khác ở phân cảnh thì phải check lại scene trước xem những scene nào cùng khung cảnh phải đồng nhất trang phục với các scene đó. Ví dụ cũng buổi chiều tại trường học, chỉ đổi góc độ quay nhân vật thì vẫn là trang phục đấy, một cảnh khác nhân vật đã đi nơi khác vào thời điểm khác thì cần phải check lại kịch bản để lựa chọn trang phục phù hợp.*
-*+ Phong cách vẽ mặt nhân vật:* [FACE_STYLE]
-*+ Các nhân vật khác nếu có sẽ với phong cách:* [OTHER_CHARS_STYLE]
-*+ Tỉ lệ kích thước cơ thể (Tất cả nhân vật):* [BODY_RATIO]
-*+ Phong cách vẽ bối cảnh:* [BG_STYLE]
-
-*Bối cảnh của phân cảnh là [A]
-
-HƯỚNG DẪN ĐẦU RA: Không viết bất kỳ văn bản, tiêu đề hay mô tả nào. Toàn bộ phản hồi của bạn phải chỉ là hình ảnh được tạo ra.*`;
-
-// Helper function to build the full strict template
+// Updated Helper function to build the full strict template based on the NEW REQUIREMENT
 const buildTemplate = (
     mainStyle: string,
     skinStyle: string,
@@ -25,16 +11,26 @@ const buildTemplate = (
     bodyRatio: string,
     bgStyle: string
 ) => {
-    return `${BASE_INVARIANT_START} ${mainStyle}
+    return `IMPORTANT REQUIREMENT: Use only the image I provide to extract the character’s appearance and outfit. All background, environment, and actions must be created entirely from the text prompt below. Do not copy or reuse the original image background. This line must appear in every prompt.
 
-*Chi tiết nhân vật: [CHARACTER_STYLE]*
-*+ Màu da/màu lông (đối với động vật):* ${skinStyle}
-*+ Phong cách trang phục:* ${clothesStyle} ${BASE_INVARIANT_END
-        .replace('[FACE_STYLE]', faceStyle)
-        .replace('[OTHER_CHARS_STYLE]', otherCharsStyle)
-        .replace('[BODY_RATIO]', bodyRatio)
-        .replace('[BG_STYLE]', bgStyle)}`;
+Redraw my character with the exact same appearance and outfit, customized in:* ${mainStyle} *
+
+Character details: [CHARACTER_STYLE]
++ Skin/Fur style: ${skinStyle}*
++ Outfit style: ${clothesStyle}*
++ Face style: ${faceStyle}*
++ Other characters (if any): ${otherCharsStyle}*
++ Body proportions (all characters): ${bodyRatio}*
++ Background style: ${bgStyle}*
+
+The scene background is [A]
+
+OUTPUT GUIDE: Do not write any text, title, or description. Your entire response must be only the generated image.*`;
 };
+
+// Preset prompts for Chat UI
+export const PRESET_PROMPT_SEGMENT = `Chia nhỏ kịch bản trên ra thành các dòng ngắn 7-15 chữ...`;
+export const PRESET_PROMPT_CONTEXT = `”Phân tích kịch bản gốc đã được cung cấp...`;
 
 export const STYLES: Style[] = [
   {
@@ -60,13 +56,13 @@ export const STYLES: Style[] = [
     tooltip: 'Phù hợp cho phim hoạt hình gia đình, video giáo dục, hoặc nội dung giải trí năng động.',
     locked: false,
     promptTemplate: buildTemplate(
-        "2D Modern Western Animation Style, thiết kế phẳng hiện đại, lineart sạch và rõ ràng, nét viền dứt khoát với độ dày thay đổi linh hoạt, màu sắc tươi sáng nhưng có kiểm soát, đổ bóng cel-shading mềm 1–2 lớp, ánh sáng rim light nhẹ để tạo chiều sâu, sử dụng nguyên lý squash & stretch tinh tế, bố cục khung hình điện ảnh (medium shot hoặc close-up linh hoạt theo cảm xúc), độ tương phản màu cao để làm nổi bật nhân vật, mood năng động – cảm xúc rõ ràng – thân thiện, phong cách hướng đến khán giả trẻ và gia đình, mang lại cảm giác sinh động, hiện đại và giàu biểu cảm, texture tối giản, không quá nhiều chi tiết nhỏ gây rối mắt, chuyển động gợi cảm giác animation frame trong phim hoạt hình truyền hình Mỹ hiện đại",
-        "Tông màu rõ ràng, ít texture, chuyển sắc mượt nhưng không tả thực quá mức, sử dụng bảng màu sạch và đồng nhất, cel-shading tạo khối rõ ràng, màu da thể hiện cá tính nhân vật (ấm áp – lạnh lùng – năng động tùy nội dung kịch bản), bề mặt mịn, không nhấn mạnh lỗ chân lông hay chi tiết siêu thực.",
-        "Thiết kế đơn giản hoá chi tiết phức tạp, tập trung vào silhouette rõ ràng, mảng màu lớn, phối màu tương phản hoặc bổ túc để nổi bật trên nền, nếp gấp được vẽ tối giản bằng 1–2 đường line hoặc mảng đổ bóng cel-shade, giữ tính nhất quán trang phục giữa các scene cùng thời điểm và bối cảnh theo kịch bản, ưu tiên tính chuyển động linh hoạt phù hợp animation.",
-        "Đặc trưng Modern Western Animation với mắt to vừa phải (không quá anime), lòng trắng rõ, con ngươi đậm màu và có highlight đơn giản, lông mày linh hoạt thể hiện cảm xúc mạnh, mũi tối giản bằng khối hoặc chấm nhỏ tuỳ thiết kế, miệng rõ hình dạng khi biểu cảm (smear frame có thể áp dụng nhẹ), biểu cảm phóng đại vừa đủ, không quá tả thực, đường viền mặt tròn hoặc góc cạnh tùy cá tính nhân vật, phụ kiện nhận diện (nếu có) được giữ nguyên chính xác.",
-        "Đồng bộ 2D Modern Western Animation Style, thiết kế đa dạng về hình khối cơ thể (cao – thấp – tròn – góc cạnh) để tạo sự phong phú, màu sắc phân tách rõ ràng giữa nhân vật chính và phụ, ít chi tiết nhỏ, giữ lineart sạch và đổ bóng cel-shading nhất quán.",
-        "Tỷ lệ cân đối theo phong cách hoạt hình phương Tây hiện đại, đầu và cơ thể hài hòa (không chibi), tay chân linh hoạt, bàn tay biểu cảm rõ ràng, tránh đầu quá to hoặc thân quá nhỏ trừ khi kịch bản yêu cầu đặc biệt.",
-        "Bối cảnh 2D stylized, hình khối rõ ràng, chi tiết được đơn giản hoá, nhà cửa và công trình sử dụng hình học cơ bản, xe cộ bo tròn mềm mại, cây cối tạo mảng lớn không quá nhiều lá nhỏ, bảng màu hài hòa và có chiều sâu bằng layer ánh sáng xa – gần, sử dụng atmospheric perspective nhẹ, ánh sáng key light rõ ràng kèm rim light nhẹ phía sau nhân vật, có thể dùng depth blur giả lập để tăng cảm giác điện ảnh, tổng thể sạch sẽ – hiện đại – phù hợp phim hoạt hình truyền hình Mỹ."
+        "2D Modern Western Animation style, clean bold lineart with dynamic line weight, controlled vibrant colors, 1–2 layer cel shading, subtle rim light, cinematic framing, energetic and friendly mood, highly expressive face, minimal clutter, looks like a modern Western animated TV frame.",
+        "Clean flat tones, minimal texture, clear shadow shapes, personality-driven color.",
+        "Strong silhouette, large color blocks, minimal folds, consistent outfit across same-time scenes.",
+        "Clear eyes with simple highlights, flexible brows, simplified nose, readable mouth shapes, keep identifying accessories.",
+        "Same style, varied shapes, clear color separation.",
+        "Balanced Western cartoon proportions, not chibi, flexible limbs.",
+        "Stylized 2D, clear shapes, medium detail, depth through color layers, key light + subtle rim light, clean modern look."
     )
   },
   {
@@ -422,6 +418,3 @@ export const STYLES: Style[] = [
     )
   }
 ];
-
-export const PRESET_PROMPT_SEGMENT = `Chia nhỏ kịch bản trên ra thành các dòng ngắn 7-15 chữ...`;
-export const PRESET_PROMPT_CONTEXT = `”Phân tích kịch bản gốc đã được cung cấp...`;

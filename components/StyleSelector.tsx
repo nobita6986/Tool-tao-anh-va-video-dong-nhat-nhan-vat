@@ -45,17 +45,21 @@ export const StyleSelector: React.FC<StyleSelectorProps> = ({ onSelectStyle, asp
   };
 
   const handleCopyGuidePrompt = () => {
-    const GUIDE_TEMPLATE = `Cấu trúc Prompt chuẩn (Tiếng Anh mang lại kết quả tốt nhất):
-Subject: [Name of character], [detailed appearance, clothing]
-Action: [what they are doing], [pose], [expression]
-Environment: [detailed location], [weather], [time of day], [background elements]
-Lighting: [cinematic lighting style], [color temperature], [shadow types]
-Camera: [camera angle], [lens type, e.g., 35mm], [composition, e.g., rule of thirds]
-Atmosphere: [mood], [fog, dust, sparkles]
-Quality: 8k resolution, highly detailed, photorealistic, sharp focus, masterpiece.
+    const GUIDE_TEMPLATE = `IMPORTANT REQUIREMENT: Use only the image I provide to extract the character’s appearance and outfit. All background, environment, and actions must be created entirely from the text prompt below. Do not copy or reuse the original image background. This line must appear in every prompt.
 
-Ví dụ:
-"Sarah, a 25-year-old woman with braided blonde hair wearing a green silk dress. She is standing on a balcony looking at a futuristic city at sunset. Dramatic orange and purple lighting. Wide shot, low angle, bokeh background. Cyberpunk aesthetic, 8k, highly detailed."`;
+Redraw my character with the exact same appearance and outfit, customized in:* [STYLE DESCRIPTION] *
+
+Character details: [CHARACTER_STYLE]
++ Skin/Fur style: [SKIN_STYLE]*
++ Outfit style: [OUTFIT_STYLE]*
++ Face style: [FACE_STYLE]*
++ Other characters (if any): [OTHER_CHARS_STYLE]*
++ Body proportions (all characters): [BODY_RATIO]*
++ Background style: [BG_STYLE]*
+
+The scene background is [A]
+
+OUTPUT GUIDE: Do not write any text, title, or description. Your entire response must be only the generated image.*`;
 
     navigator.clipboard.writeText(GUIDE_TEMPLATE).then(() => {
         setCopyButtonText('Đã chép!');
@@ -71,7 +75,6 @@ Ví dụ:
       </div>
 
       <div className="bg-white dark:bg-[#0b2b1e] border border-gray-200 dark:border-[#1f4d3a] rounded-[32px] shadow-2xl overflow-hidden">
-        {/* Sửa min-h thành h cố định để enable scrollbar */}
         <div className="grid md:grid-cols-2 items-stretch h-[650px]">
           {/* Left Side: Style Library / Custom Prompt */}
           <div className="p-8 flex flex-col border-r border-gray-100 dark:border-gray-800 h-full overflow-hidden">
@@ -142,8 +145,8 @@ Ví dụ:
                 <textarea
                   value={customPrompt}
                   onChange={(e) => setCustomPrompt(e.target.value)}
-                  placeholder="Ví dụ: 3D render, Unreal Engine 5, cinematic lighting, hyper-realistic, 8k..."
-                  className="flex-grow w-full bg-gray-50 dark:bg-[#020a06] border border-gray-200 dark:border-gray-800 rounded-2xl p-5 text-sm outline-none focus:ring-2 focus:ring-green-400 transition-all resize-none shadow-inner custom-scrollbar"
+                  placeholder="Nhập prompt template theo cấu trúc mới..."
+                  className="flex-grow w-full bg-gray-50 dark:bg-[#020a06] border border-gray-200 dark:border-gray-800 rounded-2xl p-5 text-sm outline-none focus:ring-2 focus:ring-green-400 transition-all resize-none shadow-inner custom-scrollbar font-mono"
                 />
                 <button
                   onClick={handleCopyGuidePrompt}
@@ -168,17 +171,17 @@ Ví dụ:
             </div>
 
             {/* Prompt Template Text Area */}
-            <div className="flex-grow relative group rounded-[24px] overflow-hidden shadow-sm border border-gray-200 dark:border-gray-800">
-                <div className="absolute top-0 left-0 right-0 bg-gray-100 dark:bg-[#1f4d3a] px-4 py-2 border-b border-gray-200 dark:border-gray-700 flex justify-between items-center z-10">
+            <div className="flex-grow relative group rounded-[24px] overflow-hidden shadow-sm border border-gray-200 dark:border-gray-800 flex flex-col">
+                <div className="bg-gray-100 dark:bg-[#1f4d3a] px-4 py-2 border-b border-gray-200 dark:border-gray-700 flex justify-between items-center z-10 flex-shrink-0">
                    <label className="text-[10px] font-bold uppercase tracking-wider text-gray-500 dark:text-gray-300">
                       Prompt Mẫu (Template)
                    </label>
-                   <span className="text-[9px] text-gray-400 bg-white dark:bg-[#020a06] px-2 py-0.5 rounded">Read-only View</span>
+                   <span className="text-[9px] text-gray-400 bg-white dark:bg-[#020a06] px-2 py-0.5 rounded">Read-only</span>
                 </div>
                 <textarea
                    readOnly
                    value={showCustom ? customPrompt : (activeStyle.promptTemplate || "Không có prompt mẫu cho phong cách này.")}
-                   className="w-full h-full bg-white dark:bg-[#020a06] p-6 pt-12 text-xs font-mono text-gray-600 dark:text-gray-300 resize-none outline-none custom-scrollbar leading-relaxed"
+                   className="flex-grow w-full bg-white dark:bg-[#020a06] p-6 text-[11px] font-mono text-gray-600 dark:text-gray-300 resize-none outline-none custom-scrollbar leading-relaxed whitespace-pre-wrap"
                    spellCheck={false}
                 />
             </div>
