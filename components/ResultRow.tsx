@@ -17,6 +17,7 @@ interface ResultRowProps {
   onViewImage: (imageUrl: string, rowId: number) => void;
   onOpenHistory: (row: TableRowData) => void;
   onSendToVideo: (rowId: number) => void;
+  showContextPrompt: boolean;
 }
 
 const CharacterSelector: React.FC<{
@@ -74,7 +75,7 @@ const CharacterSelector: React.FC<{
     );
 };
 
-export const ResultRow: React.FC<ResultRowProps> = ({ rowData, characters, onUpdateRow, onGenerateImage, selectedStyle, onViewImage, onStartRemake, onOpenHistory, onSendToVideo, onGenerateVideoPrompt, defaultCharacterIndex }) => {
+export const ResultRow: React.FC<ResultRowProps> = ({ rowData, characters, onUpdateRow, onGenerateImage, selectedStyle, onViewImage, onStartRemake, onOpenHistory, onSendToVideo, onGenerateVideoPrompt, defaultCharacterIndex, showContextPrompt }) => {
   const mainIndex = rowData.mainImageIndex > -1 ? rowData.mainImageIndex : (rowData.generatedImages.length > 0 ? rowData.generatedImages.length - 1 : -1);
   const mainAsset = mainIndex !== -1 ? rowData.generatedImages[mainIndex] : null;
 
@@ -115,15 +116,17 @@ export const ResultRow: React.FC<ResultRowProps> = ({ rowData, characters, onUpd
         />
       </td>
 
-      {/* Prompt Bối Cảnh */}
-      <td className="p-4 align-top w-[300px] min-w-[300px] max-w-[300px]">
-        <textarea
-          className={`${textAreaClass} text-gray-600 dark:text-gray-300 bg-white dark:bg-[#0b2b1e] border-gray-100 dark:border-[#1f4d3a]`}
-          value={rowData.contextPrompt}
-          onChange={(e) => onUpdateRow({ ...rowData, contextPrompt: e.target.value })}
-          placeholder="Nhập prompt bối cảnh..."
-        />
-      </td>
+      {/* Prompt Bối Cảnh - Chỉ hiện khi showContextPrompt = true */}
+      {showContextPrompt && (
+        <td className="p-4 align-top w-[300px] min-w-[300px] max-w-[300px] animate-in fade-in zoom-in-95 duration-200">
+            <textarea
+            className={`${textAreaClass} text-gray-600 dark:text-gray-300 bg-white dark:bg-[#0b2b1e] border-gray-100 dark:border-[#1f4d3a]`}
+            value={rowData.contextPrompt}
+            onChange={(e) => onUpdateRow({ ...rowData, contextPrompt: e.target.value })}
+            placeholder="Nhập prompt bối cảnh..."
+            />
+        </td>
+      )}
 
       {/* Prompt Image (Final) */}
       <td className="p-4 align-top w-[300px] min-w-[300px] max-w-[300px]">
