@@ -603,27 +603,27 @@ LƯU Ý: Không thêm văn bản thừa ngoài bảng Markdown.`;
           <div className="flex flex-wrap justify-between items-center gap-x-6 gap-y-3">
             <h1 onClick={handleResetApp} className="text-2xl font-bold tracking-wider bg-gradient-to-r from-orange-600 to-orange-500 dark:from-orange-400 dark:to-orange-300 bg-clip-text text-transparent cursor-pointer">StudyAI86</h1>
             <div className="flex items-center flex-wrap justify-end gap-2">
-               <Tooltip content="Mở thư viện các phiên làm việc đã lưu">
+               <Tooltip content="Mở thư viện các phiên làm việc đã lưu" position="bottom">
                     <button onClick={() => setIsLibraryOpen(true)} className="flex-shrink-0 h-10 font-bold py-2 px-4 rounded-lg bg-orange-100 text-orange-700 border border-orange-200 hover:bg-orange-200 transition-colors shadow-sm">
                         📂 Thư viện
                     </button>
                </Tooltip>
-               <Tooltip content="Tải xuống kịch bản gốc sạch (file .txt)">
+               <Tooltip content="Tải xuống kịch bản gốc sạch (file .txt)" position="bottom">
                     <button onClick={handleDownloadScript} className="flex-shrink-0 h-10 font-semibold py-2 px-4 rounded-lg bg-gray-200 dark:bg-[#0f3a29] text-gray-800 dark:text-green-300 border border-gray-300 dark:border-green-700 hover:bg-orange-100 hover:text-orange-700 transition-colors whitespace-nowrap shadow-sm">
                         Tải kịch bản
                     </button>
                </Tooltip>
-               <Tooltip content="Xuất danh sách prompt ảnh (Image Prompts) ra file Excel">
+               <Tooltip content="Xuất danh sách prompt ảnh (Image Prompts) ra file Excel" position="bottom">
                     <button onClick={handleExportImagePrompts} className="flex-shrink-0 h-10 font-semibold py-2 px-4 rounded-lg bg-gray-200 dark:bg-[#0f3a29] text-gray-800 dark:text-green-300 border border-gray-300 dark:border-green-700 hover:bg-orange-100 hover:text-orange-700 transition-colors whitespace-nowrap shadow-sm">
                         Tải prompt ảnh
                     </button>
                </Tooltip>
-               <Tooltip content="Xuất danh sách prompt video ra file Excel">
+               <Tooltip content="Xuất danh sách prompt video ra file Excel" position="bottom">
                     <button onClick={handleExportPrompts} className="flex-shrink-0 h-10 font-semibold py-2 px-4 rounded-lg bg-gray-200 dark:bg-[#0f3a29] text-gray-800 dark:text-green-300 border border-gray-300 dark:border-green-700 hover:bg-orange-100 hover:text-orange-700 transition-colors whitespace-nowrap shadow-sm">
                         Tải prompt video
                     </button>
                </Tooltip>
-               <Tooltip content={hasGeneratedImages ? "Tải xuống tất cả ảnh đã tạo dưới dạng file ZIP" : "Chức năng chỉ khả dụng khi có ảnh đã tạo"}>
+               <Tooltip content={hasGeneratedImages ? "Tải xuống tất cả ảnh đã tạo dưới dạng file ZIP" : "Chức năng chỉ khả dụng khi có ảnh đã tạo"} position="bottom">
                     <button 
                         onClick={handleDownloadAllAssets} 
                         disabled={!hasGeneratedImages}
@@ -636,17 +636,17 @@ LƯU Ý: Không thêm văn bản thừa ngoài bảng Markdown.`;
                         Tải toàn bộ ảnh
                     </button>
                </Tooltip>
-               <Tooltip content="Xem hướng dẫn sử dụng">
+               <Tooltip content="Xem hướng dẫn sử dụng" position="bottom">
                     <button onClick={() => setIsGuideOpen(true)} className="flex-shrink-0 h-10 font-semibold py-2 px-4 rounded-lg bg-gray-200 dark:bg-[#0f3a29] text-gray-800 dark:text-green-300 border border-gray-300 dark:border-green-700 hover:bg-orange-100 hover:text-orange-700 transition-colors shadow-sm">
                         Hướng dẫn
                     </button>
                </Tooltip>
-               <Tooltip content="Cấu hình API Key và Model AI">
+               <Tooltip content="Cấu hình API Key và Model AI" position="bottom">
                     <button onClick={() => setIsApiKeyManagerOpen(true)} className="flex-shrink-0 h-10 font-bold py-2 px-4 rounded-lg bg-green-600 text-white hover:bg-green-700 transition-colors shadow-sm">
                         API & Model
                     </button>
                </Tooltip>
-               <Tooltip content="Chuyển đổi giao diện Sáng/Tối">
+               <Tooltip content="Chuyển đổi giao diện Sáng/Tối" position="bottom">
                     <button onClick={toggleTheme} className="flex-shrink-0 h-10 w-10 flex items-center justify-center rounded-lg bg-gray-200 dark:bg-[#0f3a29] text-gray-800 dark:text-green-300 border border-gray-300 dark:border-green-700 hover:bg-orange-100 hover:text-orange-700 transition-colors shadow-sm">
                         {theme === 'dark' ? <SunIcon className="w-6 h-6"/> : <MoonIcon className="w-6 h-6"/>}
                     </button>
