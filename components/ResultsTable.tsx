@@ -50,8 +50,8 @@ export const ResultsTable: React.FC<ResultsTableProps> = ({
     { text: "Nhân vật", tooltip: "Danh sách nhân vật xuất hiện trong cảnh này. Ảnh tham chiếu sẽ được gửi kèm prompt." },
     { text: "Prompt bối cảnh", tooltip: "Mô tả chi tiết môi trường, ánh sáng, hành động cho AI vẽ ảnh." },
     { text: "Prompt Image", tooltip: "Prompt cuối cùng được gửi đi để tạo ảnh (đã gộp style + character + context). Bạn có thể chỉnh sửa tại đây." },
-    { text: "Image", tooltip: "Kết quả hình ảnh từ AI. Nhấn vào ảnh để xem toàn màn hình." },
     { text: "Prompt video", tooltip: "Câu lệnh điều khiển camera và chuyển động được AI phân tích từ hình ảnh." },
+    { text: "Image", tooltip: "Kết quả hình ảnh từ AI. Nhấn vào ảnh để xem toàn màn hình." },
   ];
 
   const allRowsHaveImages = tableData.length > 0 && tableData.every(r => r.generatedImages.length > 0);
@@ -70,6 +70,15 @@ export const ResultsTable: React.FC<ResultsTableProps> = ({
                     </button>
                 </Tooltip>
 
+                <Tooltip content="AI sẽ đọc từng ảnh đã vẽ để viết câu lệnh chuyển động camera 8 giây.">
+                    <button 
+                        onClick={onGenerateAllVideoPrompts} 
+                        className="text-sm font-bold py-2.5 px-6 rounded-lg bg-green-100 text-green-700 hover:bg-orange-100 hover:text-orange-700 dark:bg-green-900/30 dark:text-green-300 dark:hover:bg-orange-900/30 dark:hover:text-orange-300 transition-all border border-green-200 dark:border-green-800 active:scale-95"
+                    >
+                        Tạo tất cả prompt video
+                    </button>
+                </Tooltip>
+
                 <Tooltip content={allRowsHaveImages 
                     ? 'AI sẽ vẽ lại toàn bộ phiên bản mới cho tất cả các phân cảnh (tạo thêm bản sao).'
                     : 'Kích hoạt vẽ AI cho tất cả các phân cảnh chưa có ảnh cùng lúc.'
@@ -79,15 +88,6 @@ export const ResultsTable: React.FC<ResultsTableProps> = ({
                         className="text-sm font-bold py-2.5 px-6 rounded-lg bg-green-600 text-white hover:bg-orange-500 shadow-md transition-all active:scale-95"
                     >
                         {allRowsHaveImages ? 'Tạo lại ảnh hàng loạt' : 'Tạo ảnh hàng loạt'}
-                    </button>
-                </Tooltip>
-
-                <Tooltip content="AI sẽ đọc từng ảnh đã vẽ để viết câu lệnh chuyển động camera 8 giây.">
-                    <button 
-                        onClick={onGenerateAllVideoPrompts} 
-                        className="text-sm font-bold py-2.5 px-6 rounded-lg bg-green-100 text-green-700 hover:bg-orange-100 hover:text-orange-700 dark:bg-green-900/30 dark:text-green-300 dark:hover:bg-orange-900/30 dark:hover:text-orange-300 transition-all border border-green-200 dark:border-green-800 active:scale-95"
-                    >
-                        Tạo tất cả prompt video
                     </button>
                 </Tooltip>
             </div>

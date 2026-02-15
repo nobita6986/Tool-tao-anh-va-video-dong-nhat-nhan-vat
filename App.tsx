@@ -20,6 +20,7 @@ import { ApiKeyManager } from './components/ApiKeyManager';
 import { ScriptProcessingModal, SegmentationMethod } from './components/ScriptProcessingModal';
 import { Tooltip } from './components/Tooltip';
 import { ToastContainer, ToastMessage, ToastType } from './components/Toast';
+import { GuideModal } from './components/GuideModal';
 
 const normalizeName = (name: string): string => {
   if (!name) return '';
@@ -83,6 +84,7 @@ export default function App() {
   });
 
   const [isApiKeyManagerOpen, setIsApiKeyManagerOpen] = useState(false);
+  const [isGuideOpen, setIsGuideOpen] = useState(false);
   const [apiKeys, setApiKeys] = useState<string[]>(() => {
     const saved = localStorage.getItem('user_api_keys');
     return saved ? JSON.parse(saved) : [];
@@ -558,6 +560,11 @@ LƯU Ý: Không thêm văn bản thừa ngoài bảng Markdown.`;
                         Tải toàn bộ ảnh
                     </button>
                </Tooltip>
+               <Tooltip content="Xem hướng dẫn sử dụng">
+                    <button onClick={() => setIsGuideOpen(true)} className="flex-shrink-0 h-10 font-semibold py-2 px-4 rounded-lg bg-gray-200 dark:bg-[#0f3a29] text-gray-800 dark:text-green-300 border border-gray-300 dark:border-green-700 hover:bg-orange-100 hover:text-orange-700 transition-colors shadow-sm">
+                        Hướng dẫn
+                    </button>
+               </Tooltip>
                <Tooltip content="Cấu hình API Key và Model AI">
                     <button onClick={() => setIsApiKeyManagerOpen(true)} className="flex-shrink-0 h-10 font-bold py-2 px-4 rounded-lg bg-green-600 text-white hover:bg-green-700 transition-colors shadow-sm">
                         API & Model
@@ -643,6 +650,8 @@ LƯU Ý: Không thêm văn bản thừa ngoài bảng Markdown.`;
         onSelectImageModel={handleUpdateImageModel}
         showToast={showToast}
       />
+      
+      <GuideModal isOpen={isGuideOpen} onClose={() => setIsGuideOpen(false)} />
 
       <ScriptProcessingModal 
         isOpen={!!pendingScriptFile} 

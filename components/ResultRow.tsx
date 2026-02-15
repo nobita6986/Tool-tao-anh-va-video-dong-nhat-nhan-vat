@@ -135,6 +135,30 @@ export const ResultRow: React.FC<ResultRowProps> = ({ rowData, characters, onUpd
         />
       </td>
 
+      {/* Prompt Video */}
+      <td className="p-4 align-top w-[300px] min-w-[300px] max-w-[300px]">
+        {rowData.isGeneratingPrompt ? (
+            <div className="flex flex-col items-center justify-center h-32 gap-2 bg-gray-50 dark:bg-black/20 rounded-lg border border-gray-100 dark:border-gray-800">
+                <div className="spinner w-5 h-5 border-2"></div>
+                <span className="text-[10px] font-bold text-green-600 animate-pulse">ĐANG VIẾT...</span>
+            </div>
+        ) : rowData.videoPrompt ? (
+            <textarea
+                readOnly
+                className={`${textAreaClass} text-gray-500 dark:text-gray-400 bg-gray-50 dark:bg-[#020a06]`}
+                value={rowData.videoPrompt}
+            />
+        ) : (
+            <button 
+                onClick={() => onGenerateVideoPrompt(rowData.id)}
+                className="w-full h-32 bg-gray-50 dark:bg-[#020a06]/50 border border-gray-200 dark:border-[#1f4d3a] rounded-xl text-gray-400 dark:text-gray-500 font-bold text-xs hover:bg-green-50 hover:text-green-600 hover:border-green-200 dark:hover:bg-green-900/10 dark:hover:text-green-400 transition-all flex flex-col items-center justify-center gap-2 group/video"
+            >
+                <span className="text-2xl group-hover/video:scale-110 transition-transform grayscale group-hover/video:grayscale-0">🎬</span>
+                <span className="uppercase tracking-wider text-[10px]">Tạo Prompt Video</span>
+            </button>
+        )}
+      </td>
+
       {/* Image */}
       <td className="p-4 align-top w-48 min-w-[192px]">
         <div className="flex flex-col gap-2 min-h-[120px] justify-start h-full">
@@ -178,30 +202,6 @@ export const ResultRow: React.FC<ResultRowProps> = ({ rowData, characters, onUpd
                 </div>
             )}
         </div>
-      </td>
-
-      {/* Prompt Video */}
-      <td className="p-4 align-top w-[300px] min-w-[300px] max-w-[300px]">
-        {rowData.isGeneratingPrompt ? (
-            <div className="flex flex-col items-center justify-center h-32 gap-2 bg-gray-50 dark:bg-black/20 rounded-lg border border-gray-100 dark:border-gray-800">
-                <div className="spinner w-5 h-5 border-2"></div>
-                <span className="text-[10px] font-bold text-green-600 animate-pulse">ĐANG VIẾT...</span>
-            </div>
-        ) : rowData.videoPrompt ? (
-            <textarea
-                readOnly
-                className={`${textAreaClass} text-gray-500 dark:text-gray-400 bg-gray-50 dark:bg-[#020a06]`}
-                value={rowData.videoPrompt}
-            />
-        ) : (
-            <button 
-                onClick={() => onGenerateVideoPrompt(rowData.id)}
-                className="w-full h-32 bg-gray-50 dark:bg-[#020a06]/50 border border-gray-200 dark:border-[#1f4d3a] rounded-xl text-gray-400 dark:text-gray-500 font-bold text-xs hover:bg-green-50 hover:text-green-600 hover:border-green-200 dark:hover:bg-green-900/10 dark:hover:text-green-400 transition-all flex flex-col items-center justify-center gap-2 group/video"
-            >
-                <span className="text-2xl group-hover/video:scale-110 transition-transform grayscale group-hover/video:grayscale-0">🎬</span>
-                <span className="uppercase tracking-wider text-[10px]">Tạo Prompt Video</span>
-            </button>
-        )}
       </td>
     </tr>
   );
