@@ -10,7 +10,7 @@ import { ImageModal } from './components/ImageModal';
 import { SimpleImageModal } from './components/SimpleImageModal';
 import { RemakeModal } from './components/RemakeModal';
 import { ConfirmationModal } from './components/ConfirmationModal';
-import { createProjectAssetsZip, readExcelFile, createRowAssetsZip, exportVideoPromptsToExcel, exportImagePromptsToExcel, createFramesJsonWithImgAndPrompt, readTextFile, parseMarkdownTables } from './utils/fileUtils';
+import { createProjectAssetsZip, readExcelFile, createRowAssetsZip, exportVideoPromptsToExcel, exportImagePromptsToExcel, createFramesJsonWithImgAndPrompt, readTextFile, parseMarkdownTables, exportCleanScriptToTxt } from './utils/fileUtils';
 import { FileDropzone } from './components/FileDropzone';
 import { VersionHistoryModal } from './components/VersionHistoryModal';
 import { SunIcon, MoonIcon } from './components/icons';
@@ -489,6 +489,14 @@ LƯU Ý: Không thêm văn bản thừa ngoài bảng Markdown.`;
       }
   }, [tableData, showToast]);
 
+  const handleDownloadScript = useCallback(() => {
+      if (!exportCleanScriptToTxt(tableData, `Clean_Script.txt`)) {
+          showToast('Không có nội dung kịch bản để tải xuống.', 'warning');
+      } else {
+          showToast('Đã tải xuống kịch bản sạch.', 'success');
+      }
+  }, [tableData, showToast]);
+
   const handleResetApp = () => {
       if (window.confirm("Bạn có chắc chắn muốn tải lại trang? Dữ liệu chưa lưu sẽ bị mất.")) {
           window.location.reload();
@@ -537,6 +545,11 @@ LƯU Ý: Không thêm văn bản thừa ngoài bảng Markdown.`;
           <div className="flex flex-wrap justify-between items-center gap-x-6 gap-y-3">
             <h1 onClick={handleResetApp} className="text-2xl font-bold tracking-wider gradient-text cursor-pointer">StudyAI86</h1>
             <div className="flex items-center flex-wrap justify-end gap-2">
+               <Tooltip content="Tải xuống kịch bản gốc sạch (file .txt)">
+                    <button onClick={handleDownloadScript} className="flex-shrink-0 h-10 font-semibold py-2 px-4 rounded-lg bg-gray-200 dark:bg-[#0f3a29] text-gray-800 dark:text-green-300 border border-gray-300 dark:border-green-700 hover:bg-orange-100 hover:text-orange-700 transition-colors whitespace-nowrap shadow-sm">
+                        Tải kịch bản
+                    </button>
+               </Tooltip>
                <Tooltip content="Xuất danh sách prompt ảnh (Image Prompts) ra file Excel">
                     <button onClick={handleExportImagePrompts} className="flex-shrink-0 h-10 font-semibold py-2 px-4 rounded-lg bg-gray-200 dark:bg-[#0f3a29] text-gray-800 dark:text-green-300 border border-gray-300 dark:border-green-700 hover:bg-orange-100 hover:text-orange-700 transition-colors whitespace-nowrap shadow-sm">
                         Tải prompt ảnh

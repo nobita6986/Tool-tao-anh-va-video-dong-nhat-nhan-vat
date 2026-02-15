@@ -121,7 +121,7 @@ export const getPromptForRow = (row: TableRowData, selectedStyle: Style, charact
         }
         basePrompt = template.replace('[CHARACTER_STYLE]', '').replace('[A]', row.contextPrompt);
     } else if (selectedCharIndices.length === 1 && selectedCharIndices[0] === -2) { 
-        const randomCharacterInstruction = `**CREATIVE CHARACTER GENERATION:**\nUse the provided image purely for ART STYLE reference.\nDO NOT copy the character in the reference image.\nCREATE A NEW CHARACTER based on the scene description below.`;
+        const randomCharacterInstruction = `**CREATIVE CHARACTER GENERATION:**\nUse the provided image purely for ART STYLE reference.\nDO NOT copy the character in the reference image.\nDO NOT copy the character in the reference image.\nCREATE A NEW CHARACTER based on the scene description below.`;
         let template = originalTemplate;
         template = template.replace(/^\*\*YÊU CẦU QUAN TRỌNG:[\s\S]*?Vẽ lại nhân vật tôi gửi, với chính xác ngoại hình, trang phục nhưng customize theo phong cách sau/s, randomCharacterInstruction);
         template = template.replace('[CHARACTER_STYLE]', '');
@@ -222,6 +222,26 @@ const downloadFile = (blob: Blob, filename: string) => {
     a.click();
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
+};
+
+export const exportCleanScriptToTxt = (tableData: TableRowData[], filename: string): boolean => {
+    const lines = tableData
+        .map(row => {
+            // Lấy cột Tiếng Việt (index 2) làm kịch bản gốc sạch
+            // Nếu không có Tiếng Việt thì fallback về Ngôn ngữ gốc (index 1)
+            const content = String(row.originalRow[2] || row.originalRow[1] || '').trim();
+            if (!content) return null;
+            // Xóa tất cả dấu xuống dòng trong cùng 1 đoạn để đảm bảo 1 đoạn là 1 dòng
+            return content.replace(/[\r\n]+/g, ' ');
+        })
+        .filter((line): line is string => line !== null && line.length > 0);
+
+    if (lines.length === 0) return false;
+
+    const textContent = lines.join('\n');
+    const blob = new Blob([textContent], { type: 'text/plain;charset=utf-8' });
+    downloadFile(blob, filename);
+    return true;
 };
 
 export const exportVideoPromptsToExcel = (tableData: TableRowData[], filename: string): boolean => {
