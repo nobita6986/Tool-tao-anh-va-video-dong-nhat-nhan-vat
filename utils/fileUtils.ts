@@ -91,68 +91,63 @@ const getExtensionFromDataUrl = (dataUrl: string): string => {
 };
 
 export const getPromptForRow = (row: TableRowData, selectedStyle: Style, characters: Character[]): string => {
-    if (!selectedStyle?.promptTemplate) return row.contextPrompt || "";
+    if (!selectedStyle?.promptTemplate) return (row.contextPrompt || "").replace(/[\r\n]+/g, ' ').trim();
+    
+    // Tạo bản sao của template để thay thế
+    let basePrompt = selectedStyle.promptTemplate;
     const selectedCharIndices = row.selectedCharacterIndices;
-    let basePrompt = '';
-    const originalTemplate = selectedStyle.promptTemplate;
 
+    // Xử lý điền thông tin nhân vật vào [CHARACTER_STYLE]
+    let characterDetails = '';
+    
     if (selectedCharIndices.length > 0 && selectedCharIndices[0] >= 0) { 
-        let characterDetails = '';
+        // Trường hợp có chọn nhân vật cụ thể
         const characterNames: string[] = [];
         selectedCharIndices.forEach((charIndex) => {
             const character = characters[charIndex];
             if (!character || !character.name) return;
             characterNames.push(`"${character.name}"`);
-            const userStyleInstruction = character.stylePrompt 
-                ? `\n   - **Specific Style/Attire:** ${character.stylePrompt}` 
-                : `\n   - **Attire:** Match the clothing style in the reference image.`;
-            characterDetails += `\n🔴 **TARGET CHARACTER: ${character.name}**\n   - **SOURCE:** Use the provided reference image(s) labeled for "${character.name}".\n   - **FACE/IDENTITY:** STRICTLY COPY the facial features and structure from the reference image.\n   - **EXPRESSION:** ADAPT the facial expression to match the emotional context.\n   - **BODY TYPE:** Match the body build and age from the reference.${userStyleInstruction}\n`;
-        });
-        
-        let template = originalTemplate;
-        if (characterNames.length > 0) {
-             const multiCharacterInstruction = `**⚠️ CRITICAL: CHARACTER CONSISTENCY PROTOCOL ⚠️**\nI have provided reference images for: ${characterNames.join(', ')}.\n\n**MANDATORY RULES FOR AI:**\n1. **VISUAL FIDELITY:** You MUST generate the characters with the EXACT SAME facial features and identity as the reference images.\n2. **IDENTITY LOCK:** Do NOT create generic faces.\n3. **DYNAMIC EXPRESSIONS:** Adapt the facial expression to the scene.\n4. **STYLE COMPLIANCE:** Follow the user's specific clothing/style description.\n\n**CHARACTER DATA:**\n${characterDetails}\n\n**SCENE CONTEXT (Apply the Art Style to this context):**`;
-            const introRegex = /^\*\*YÊU CẦU QUAN TRỌNG:[\s\S]*?Vẽ lại nhân vật tôi gửi, với chính xác ngoại hình, trang phục nhưng customize theo phong cách sau/s;
-            if (introRegex.test(template)) {
-                template = template.replace(introRegex, multiCharacterInstruction);
+            
+            // Xây dựng chi tiết cho từng nhân vật - Sử dụng dấu phẩy thay vì xuống dòng
+            characterDetails += ` Name: ${character.name},`;
+            if (character.stylePrompt) {
+                 characterDetails += ` Appearance: ${character.stylePrompt},`;
             } else {
-                template = multiCharacterInstruction + "\n" + template;
+                 characterDetails += ` Appearance: same as reference image,`;
             }
-        }
-        basePrompt = template.replace('[CHARACTER_STYLE]', '').replace('[A]', row.contextPrompt);
+        });
+        characterDetails += ` REQUIREMENT: Copy exact face and identity from reference image of [${characterNames.join(', ')}].`;
     } else if (selectedCharIndices.length === 1 && selectedCharIndices[0] === -2) { 
-        const randomCharacterInstruction = `**CREATIVE CHARACTER GENERATION:**\nUse the provided image purely for ART STYLE reference.\nDO NOT copy the character in the reference image.\nDO NOT copy the character in the reference image.\nCREATE A NEW CHARACTER based on the scene description below.`;
-        let template = originalTemplate;
-        template = template.replace(/^\*\*YÊU CẦU QUAN TRỌNG:[\s\S]*?Vẽ lại nhân vật tôi gửi, với chính xác ngoại hình, trang phục nhưng customize theo phong cách sau/s, randomCharacterInstruction);
-        template = template.replace('[CHARACTER_STYLE]', '');
-        basePrompt = template.replace('[A]', row.contextPrompt);
+        // Trường hợp Random
+        characterDetails = "Create random character fitting the context. DO NOT copy character from reference image.";
     } else { 
-        const nonCharacterInstruction = `\n\n**SCENE GENERATION:** No specific main characters. Use provided images for ART STYLE consistency only.`;
-        const refCharacterIndex = characters.findIndex(c => c && c.images.length > 0);
-        let sceneTemplate;
-        if (refCharacterIndex === -1) {
-            sceneTemplate = originalTemplate.replace(/^\*\*YÊU CẦU QUAN TRỌNG:[\s\S]*?Vẽ lại nhân vật tôi gửi, với chính xác ngoại hình, trang phục nhưng customize theo phong cách sau/s, 'Create an image with consistent art style.');
-        } else {
-            sceneTemplate = originalTemplate.replace(/^\*\*YÊU CẦU QUAN TRỌNG:[\s\S]*?Vẽ lại nhân vật tôi gửi, với chính xác ngoại hình, trang phục nhưng customize theo phong cách sau/s, `**STYLE REFERENCE ONLY:** Use the provided images for ART STYLE reference ONLY. DO NOT include the characters from the reference images.`);
-        }
-        sceneTemplate = sceneTemplate.replace(/Chi tiết nhân vật:[\s\S]*?\+ Phong cách vẽ bối cảnh:/s, '+ Phong cách vẽ bối cảnh:');
-        sceneTemplate = sceneTemplate.replace('[CHARACTER_STYLE]', '');
-        basePrompt = sceneTemplate.replace('[A]', row.contextPrompt) + nonCharacterInstruction;
+        // Trường hợp không chọn nhân vật
+        characterDetails = "No specific character. Focus on context or crowd.";
     }
-    return basePrompt.trim();
+
+    // Thực hiện thay thế vào template
+    basePrompt = basePrompt.replace('[CHARACTER_STYLE]', characterDetails);
+    basePrompt = basePrompt.replace('[A]', row.contextPrompt);
+
+    // QUAN TRỌNG: Thay thế toàn bộ ký tự xuống dòng bằng khoảng trắng để tạo thành 1 dòng duy nhất
+    return basePrompt.replace(/[\r\n]+/g, ' ').replace(/\s+/g, ' ').trim();
 };
 
 export const getPromptAndPartsForRow = ({ row, rowIndex, tableData, selectedStyle, characters, defaultCharacterIndices, adjustments }: any): { prompt: string; parts: any[] } => {
     let prompt = row.imagePrompt && row.imagePrompt.trim() !== '' ? row.imagePrompt : getPromptForRow(row, selectedStyle, characters);
+    
+    // Đảm bảo prompt đầu vào cũng là 1 line
+    prompt = prompt.replace(/[\r\n]+/g, ' ').replace(/\s+/g, ' ').trim();
+
     const parts: any[] = [];
     const selectedCharIndices = row.selectedCharacterIndices;
     
     if (selectedCharIndices.length > 0 && selectedCharIndices[0] >= 0) {
-        parts.push({ text: "**REFERENCE MATERIAL:**\n" }); 
+        parts.push({ text: "**REFERENCE MATERIAL:** " }); 
         selectedCharIndices.forEach((charIndex: number) => {
             const character = characters[charIndex];
             if (character && character.images.length > 0) {
-                parts.push({ text: `\n[REFERENCE IMAGE FOR: "${character.name}"]` });
+                parts.push({ text: ` [REFERENCE IMAGE FOR: "${character.name}"] ` });
                 character.images.forEach((imgDataUrl: string) => {
                     const [header, base64Data] = imgDataUrl.split(',');
                     const mimeType = header.match(/data:(.*);base64/)?.[1] || 'image/png';
@@ -160,7 +155,7 @@ export const getPromptAndPartsForRow = ({ row, rowIndex, tableData, selectedStyl
                 });
             }
         });
-        parts.push({ text: "\n**END OF REFERENCES.**\n\n" }); 
+        parts.push({ text: " **END OF REFERENCES.** " }); 
     } else { 
         const refCharacter = characters.find((c: any) => c && c.images.length > 0);
         if (refCharacter && refCharacter.images.length > 0) {
@@ -173,13 +168,13 @@ export const getPromptAndPartsForRow = ({ row, rowIndex, tableData, selectedStyl
     }
 
     if (adjustments) {
-        let adjustmentText = "\n\n**ADJUSTMENTS:** Based on feedback, apply the following changes:";
-        if (adjustments.options.length > 0) adjustmentText += "\n- Apply selected adjustments logic.";
+        let adjustmentText = " **ADJUSTMENTS:** Based on feedback, apply the following changes:";
+        if (adjustments.options.length > 0) adjustmentText += " Apply selected adjustments logic.";
         if (adjustments.manualPrompt) {
-            adjustmentText += `\n- User Manual Request: ${adjustments.manualPrompt}`;
+            adjustmentText += ` User Manual Request: ${adjustments.manualPrompt}`;
             const sceneMatches = adjustments.manualPrompt.match(/\[scene_([\w.-]+)\]/g);
             if (sceneMatches) {
-                adjustmentText += `\n- Visual References provided from other scenes:`;
+                adjustmentText += ` Visual References provided from other scenes:`;
                 sceneMatches.forEach((match: string) => {
                     const sceneId = match.match(/\[scene_([\w.-]+)\]/)?.[1];
                     if (sceneId) {
@@ -198,8 +193,10 @@ export const getPromptAndPartsForRow = ({ row, rowIndex, tableData, selectedStyl
                 });
             }
         }
-        prompt += adjustmentText;
+        // Nối adjustment vào prompt chính, cũng đảm bảo 1 dòng
+        prompt += adjustmentText.replace(/[\r\n]+/g, ' ');
     }
+    
     parts.push({ text: prompt });
     return { prompt, parts };
 };
@@ -262,7 +259,7 @@ export const convertSavedSessionToTableData = (savedRows: SavedSessionRow[]): Ta
 export const exportVideoPromptsToExcel = (tableData: TableRowData[], filename: string): boolean => {
     const rows = tableData
         .filter(row => row.videoPrompt && row.videoPrompt.trim())
-        .map(row => [row.originalRow[0], row.videoPrompt!.trim()]);
+        .map(row => [row.originalRow[0], row.videoPrompt!.trim().replace(/[\r\n]+/g, ' ')]);
 
     if (rows.length === 0) return false;
 
@@ -284,7 +281,7 @@ export const exportImagePromptsToExcel = (tableData: TableRowData[], filename: s
             const stt = row.originalRow[0];
             const promptContent = row.imagePrompt || row.contextPrompt;
             if (!promptContent || !promptContent.trim()) return null;
-            return [stt, promptContent.trim()];
+            return [stt, promptContent.trim().replace(/[\r\n]+/g, ' ')];
         })
         .filter(r => r !== null);
 
@@ -312,7 +309,7 @@ const getValidRowsForJsonExport = (tableData: TableRowData[]) => {
 
         return {
           asset: mainAsset,
-          videoPrompt: row.videoPrompt || "",
+          videoPrompt: (row.videoPrompt || "").replace(/[\r\n]+/g, ' '),
         };
       }
       return null;

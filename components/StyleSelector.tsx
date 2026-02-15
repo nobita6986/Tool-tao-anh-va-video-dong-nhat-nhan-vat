@@ -1,5 +1,5 @@
 
-import React, { useState, useMemo, useRef, useEffect } from 'react';
+import React, { useState, useMemo } from 'react';
 import type { Style, AspectRatio } from '../types';
 import { STYLES } from '../constants';
 import { CopyIcon } from './icons';
@@ -71,9 +71,10 @@ Ví dụ:
       </div>
 
       <div className="bg-white dark:bg-[#0b2b1e] border border-gray-200 dark:border-[#1f4d3a] rounded-[32px] shadow-2xl overflow-hidden">
-        <div className="grid md:grid-cols-2 items-stretch">
+        {/* Sửa min-h thành h cố định để enable scrollbar */}
+        <div className="grid md:grid-cols-2 items-stretch h-[650px]">
           {/* Left Side: Style Library / Custom Prompt */}
-          <div className="p-10 flex flex-col border-r border-gray-100 dark:border-gray-800">
+          <div className="p-8 flex flex-col border-r border-gray-100 dark:border-gray-800 h-full overflow-hidden">
             <div className="flex gap-2 p-1.5 bg-gray-100 dark:bg-[#020a06] rounded-2xl mb-6 flex-shrink-0">
               <button 
                 onClick={() => setShowCustom(false)}
@@ -90,7 +91,7 @@ Ví dụ:
             </div>
 
             {!showCustom ? (
-              <div className="flex flex-col h-full">
+              <div className="flex flex-col flex-grow overflow-hidden">
                 <div className="space-y-4 flex flex-col h-full">
                   <div className="relative flex-shrink-0">
                     <label className="block text-[10px] font-black uppercase text-gray-400 mb-2 tracking-[0.2em]">Tìm kiếm phong cách</label>
@@ -103,10 +104,9 @@ Ví dụ:
                     />
                   </div>
 
-                  <div className="flex flex-col">
+                  <div className="flex flex-col flex-grow overflow-hidden">
                     <label className="block text-[10px] font-black uppercase text-gray-400 mb-2 tracking-[0.2em]">Danh sách phong cách</label>
-                    {/* H- [252px] is calculated to show exactly 3 items (each ~84px including padding and border) */}
-                    <div className="h-[252px] overflow-y-auto custom-scrollbar border border-gray-100 dark:border-gray-800 rounded-2xl bg-gray-50/50 dark:bg-[#020a06]/30">
+                    <div className="flex-grow overflow-y-auto custom-scrollbar border border-gray-100 dark:border-gray-800 rounded-2xl bg-gray-50/50 dark:bg-[#020a06]/30">
                       {filteredStyles.length > 0 ? (
                         filteredStyles.map((style) => {
                           const originalIndex = STYLES.indexOf(style);
@@ -135,14 +135,6 @@ Ví dụ:
                     </div>
                   </div>
                 </div>
-                
-                <div className="mt-6">
-                  <div className="bg-green-50 dark:bg-green-900/10 p-4 rounded-2xl border border-green-100 dark:border-green-900/20">
-                    <p className="text-[11px] text-green-700 dark:text-green-300 font-medium leading-relaxed italic">
-                      "Hệ thống sẽ tự động thêm các câu lệnh bổ trợ vào kịch bản để đảm bảo kết quả giống hệt phong cách mẫu này."
-                    </p>
-                  </div>
-                </div>
               </div>
             ) : (
               <div className="flex flex-col h-full space-y-4 animate-in fade-in slide-in-from-right-4 duration-300">
@@ -151,7 +143,7 @@ Ví dụ:
                   value={customPrompt}
                   onChange={(e) => setCustomPrompt(e.target.value)}
                   placeholder="Ví dụ: 3D render, Unreal Engine 5, cinematic lighting, hyper-realistic, 8k..."
-                  className="flex-grow w-full bg-gray-50 dark:bg-[#020a06] border border-gray-200 dark:border-gray-800 rounded-2xl p-5 text-sm outline-none focus:ring-2 focus:ring-green-400 transition-all resize-none shadow-inner"
+                  className="flex-grow w-full bg-gray-50 dark:bg-[#020a06] border border-gray-200 dark:border-gray-800 rounded-2xl p-5 text-sm outline-none focus:ring-2 focus:ring-green-400 transition-all resize-none shadow-inner custom-scrollbar"
                 />
                 <button
                   onClick={handleCopyGuidePrompt}
@@ -164,24 +156,34 @@ Ví dụ:
             )}
           </div>
 
-          {/* Right Side: High-Quality Preview Card */}
-          <div className="bg-gray-50 dark:bg-[#020a06]/50 p-10 flex flex-col justify-center items-center h-full gap-8">
-            <div className="w-full max-w-[320px] h-full flex flex-col justify-between">
-              <div className="aspect-[4/5] rounded-[32px] overflow-hidden shadow-2xl border-8 border-white dark:border-gray-800 group relative mb-6">
-                <img 
-                  key={showCustom ? 'custom' : activeStyle.imageUrl}
-                  src={showCustom ? 'https://images.unsplash.com/photo-1541701494587-cb58502866ab?auto=format&fit=crop&w=400&q=80' : activeStyle.imageUrl} 
-                  className="w-full h-full object-cover transition-transform duration-1000 group-hover:scale-110" 
-                  alt="Preview" 
-                />
-                <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent"></div>
-                <div className="absolute bottom-6 left-6 right-6 text-white">
-                  <p className="text-[10px] font-black uppercase tracking-[0.3em] opacity-60 mb-1">Preview</p>
-                  <h3 className="font-black text-2xl uppercase tracking-tight">{showCustom ? 'Tùy chỉnh' : activeStyle.title}</h3>
+          {/* Right Side: Prompt Template Display (Replaces Image Preview) */}
+          <div className="bg-gray-50 dark:bg-[#020a06]/50 p-8 flex flex-col h-full gap-6 overflow-hidden">
+            <div className="flex justify-between items-start flex-shrink-0">
+               <div>
+                  <p className="text-[10px] font-black uppercase tracking-[0.3em] text-gray-400 mb-1">Phong cách đã chọn</p>
+                  <h3 className="font-black text-2xl uppercase tracking-tight text-gray-900 dark:text-white line-clamp-1">
+                      {showCustom ? 'Tùy chỉnh' : activeStyle.title}
+                  </h3>
+               </div>
+            </div>
+
+            {/* Prompt Template Text Area */}
+            <div className="flex-grow relative group rounded-[24px] overflow-hidden shadow-sm border border-gray-200 dark:border-gray-800">
+                <div className="absolute top-0 left-0 right-0 bg-gray-100 dark:bg-[#1f4d3a] px-4 py-2 border-b border-gray-200 dark:border-gray-700 flex justify-between items-center z-10">
+                   <label className="text-[10px] font-bold uppercase tracking-wider text-gray-500 dark:text-gray-300">
+                      Prompt Mẫu (Template)
+                   </label>
+                   <span className="text-[9px] text-gray-400 bg-white dark:bg-[#020a06] px-2 py-0.5 rounded">Read-only View</span>
                 </div>
-              </div>
-              
-              <div className="text-center space-y-6">
+                <textarea
+                   readOnly
+                   value={showCustom ? customPrompt : (activeStyle.promptTemplate || "Không có prompt mẫu cho phong cách này.")}
+                   className="w-full h-full bg-white dark:bg-[#020a06] p-6 pt-12 text-xs font-mono text-gray-600 dark:text-gray-300 resize-none outline-none custom-scrollbar leading-relaxed"
+                   spellCheck={false}
+                />
+            </div>
+            
+            <div className="space-y-6 flex-shrink-0">
                  {/* Aspect Ratio Selector */}
                  <div className="bg-white dark:bg-[#020a06] p-1.5 rounded-xl border border-gray-200 dark:border-gray-800 flex gap-1 shadow-sm">
                     {(['16:9', '9:16', '1:1', '4:3', '3:4'] as AspectRatio[]).map((ratio) => (
@@ -200,9 +202,12 @@ Ví dụ:
                     ))}
                  </div>
 
-                <p className="text-xs text-gray-500 dark:text-gray-400 font-medium leading-relaxed px-4">
-                  {showCustom ? 'Tạo hình ảnh dựa trên mô tả phong cách tự do của bạn.' : activeStyle.description}
-                </p>
+                {!showCustom && (
+                    <p className="text-xs text-gray-500 dark:text-gray-400 font-medium leading-relaxed px-1 line-clamp-2">
+                        {activeStyle.description}
+                    </p>
+                )}
+
                 <button
                   onClick={handleConfirm}
                   disabled={showCustom && !customPrompt.trim()}
@@ -210,7 +215,6 @@ Ví dụ:
                 >
                   Bắt đầu tạo &rarr;
                 </button>
-              </div>
             </div>
           </div>
         </div>

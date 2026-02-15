@@ -488,7 +488,7 @@ LƯU Ý: Không thêm văn bản thừa ngoài bảng Markdown.`;
     try {
         const { ai } = getAiInstance(keyIdx);
         const parts: any[] = [];
-        const baseInstruction = `Hãy viết Prompt Video tiếng Anh dài 300 chữ mô tả chuyển động camera 8 giây. ${videoPromptNote}\n\nYÊU CẦU BẮT BUỘC: Chỉ trả về duy nhất đoạn text tiếng Anh chứa nội dung prompt. Tuyệt đối KHÔNG bao gồm bất kỳ lời dẫn, giải thích, tiêu đề (ví dụ: "Here is the prompt", "Video Prompt:") hay định dạng markdown nào.`;
+        const baseInstruction = `Hãy viết Prompt Video tiếng Anh dài 300 chữ mô tả chuyển động camera 8 giây. ${videoPromptNote}\n\nYÊU CẦU BẮT BUỘC: Chỉ trả về duy nhất đoạn text tiếng Anh chứa nội dung prompt, VIẾT LIỀN MẠCH THÀNH 1 DÒNG (One-line), KHÔNG XUỐNG DÒNG. Tuyệt đối KHÔNG bao gồm bất kỳ lời dẫn, giải thích, tiêu đề (ví dụ: "Here is the prompt", "Video Prompt:") hay định dạng markdown nào.`;
 
         if (mainAsset) {
             // Trường hợp 1: Có ảnh -> Ưu tiên tạo từ ảnh (Image to Video Prompt)
@@ -501,7 +501,9 @@ LƯU Ý: Không thêm văn bản thừa ngoài bảng Markdown.`;
 
         const responseStream = await ai.models.generateContentStream({ model: selectedModel, contents: { parts } });
         for await (const chunk of responseStream) {
-            setTableData(prevData => prevData.map(r => r.id === rowId ? { ...r, videoPrompt: (r.videoPrompt || '') + (chunk.text || '') } : r));
+            // Force replace newlines in the incoming stream chunk
+            const cleanChunk = (chunk.text || '').replace(/[\r\n]+/g, ' ');
+            setTableData(prevData => prevData.map(r => r.id === rowId ? { ...r, videoPrompt: ((r.videoPrompt || '') + cleanChunk).replace(/[\r\n]+/g, ' ') } : r));
         }
     } catch (err: any) {
         const { keyCount } = getAiInstance();
