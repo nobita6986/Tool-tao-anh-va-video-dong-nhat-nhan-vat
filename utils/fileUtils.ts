@@ -1,5 +1,5 @@
 
-import type { ExcelRow, TableRowData, Style, Character, AdjustmentOptions } from './types';
+import type { ExcelRow, TableRowData, Style, Character, AdjustmentOptions, SavedSessionRow } from './types';
 
 // These are expected to be available globally from CDN scripts in index.html
 declare const XLSX: any;
@@ -227,9 +227,8 @@ const downloadFile = (blob: Blob, filename: string) => {
 export const exportCleanScriptToTxt = (tableData: TableRowData[], filename: string): boolean => {
     const lines = tableData
         .map(row => {
-            // Lấy cột Tiếng Việt (index 2) làm kịch bản gốc sạch
-            // Nếu không có Tiếng Việt thì fallback về Ngôn ngữ gốc (index 1)
-            const content = String(row.originalRow[2] || row.originalRow[1] || '').trim();
+            // SỬA: Lấy cột Kịch bản gốc (index 1) làm kịch bản sạch theo yêu cầu
+            const content = String(row.originalRow[1] || '').trim();
             if (!content) return null;
             // Xóa tất cả dấu xuống dòng trong cùng 1 đoạn để đảm bảo 1 đoạn là 1 dòng
             return content.replace(/[\r\n]+/g, ' ');
@@ -242,6 +241,22 @@ export const exportCleanScriptToTxt = (tableData: TableRowData[], filename: stri
     const blob = new Blob([textContent], { type: 'text/plain;charset=utf-8' });
     downloadFile(blob, filename);
     return true;
+};
+
+export const convertSavedSessionToTableData = (savedRows: SavedSessionRow[]): TableRowData[] => {
+    return savedRows.map((row, index) => ({
+        id: index + 1,
+        originalRow: [row.stt, row.original, row.vietnamese, '', ''],
+        contextPrompt: '', // Không lưu context prompt trong saved session để tối ưu, hoặc cần lưu nếu muốn export chuẩn
+        imagePrompt: row.imagePrompt,
+        videoPrompt: row.videoPrompt,
+        selectedCharacterIndices: [],
+        generatedImages: [],
+        mainImageIndex: -1,
+        isGenerating: false,
+        error: null,
+        isGeneratingPrompt: false
+    }));
 };
 
 export const exportVideoPromptsToExcel = (tableData: TableRowData[], filename: string): boolean => {

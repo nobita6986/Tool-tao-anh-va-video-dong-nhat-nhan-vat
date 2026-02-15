@@ -33,6 +33,21 @@ export interface TableRowData {
   isGeneratingPrompt?: boolean;
 }
 
+export interface SavedSessionRow {
+  stt: string | number;
+  original: string; // Kịch bản gốc
+  vietnamese: string; // Tiếng Việt
+  imagePrompt: string;
+  videoPrompt: string;
+}
+
+export interface SavedSession {
+  id: string; // Timestamp ID
+  name: string; // Tên dự án (lấy theo thời gian hoặc tên file)
+  timestamp: number;
+  rows: SavedSessionRow[];
+}
+
 export interface AdjustmentOptions {
   options: string[];
   manualPrompt: string;

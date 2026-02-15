@@ -2,7 +2,7 @@
 import React, { useState, useCallback, ChangeEvent, useEffect, useRef } from 'react';
 import { GoogleGenAI } from '@google/genai';
 import { STYLES, PRESET_PROMPT_CONTEXT } from './constants';
-import type { Style, Character, TableRowData, ExcelRow, AdjustmentOptions, ColumnMapping, ChatMessage, GeminiModel, ImageGenModel, AspectRatio } from './types';
+import type { Style, Character, TableRowData, ExcelRow, AdjustmentOptions, ColumnMapping, ChatMessage, GeminiModel, ImageGenModel, AspectRatio, SavedSession, SavedSessionRow } from './types';
 import { StyleSelector } from './components/StyleSelector';
 import { CharacterManager } from './components/CharacterManager';
 import { ResultsView } from './components/ResultsView';
@@ -21,6 +21,7 @@ import { ScriptProcessingModal, SegmentationMethod } from './components/ScriptPr
 import { Tooltip } from './components/Tooltip';
 import { ToastContainer, ToastMessage, ToastType } from './components/Toast';
 import { GuideModal } from './components/GuideModal';
+import { LibraryModal } from './components/LibraryModal';
 
 const normalizeName = (name: string): string => {
   if (!name) return '';
@@ -72,6 +73,7 @@ export default function App() {
   const [isProcessingScript, setIsProcessingScript] = useState(false);
   const [aspectRatio, setAspectRatio] = useState<AspectRatio>('16:9');
   const [toasts, setToasts] = useState<ToastMessage[]>([]);
+  const [currentSessionId, setCurrentSessionId] = useState<string>(() => Date.now().toString());
   
   // Model xử lý văn bản (Text Model)
   const [selectedModel, setSelectedModel] = useState<GeminiModel>(() => {
@@ -85,6 +87,7 @@ export default function App() {
 
   const [isApiKeyManagerOpen, setIsApiKeyManagerOpen] = useState(false);
   const [isGuideOpen, setIsGuideOpen] = useState(false);
+  const [isLibraryOpen, setIsLibraryOpen] = useState(false);
   const [apiKeys, setApiKeys] = useState<string[]>(() => {
     const saved = localStorage.getItem('user_api_keys');
     return saved ? JSON.parse(saved) : [];
@@ -106,6 +109,58 @@ export default function App() {
     else document.documentElement.classList.remove('dark');
     localStorage.setItem('theme', theme);
   }, [theme]);
+
+  // Auto-save logic
+  useEffect(() => {
+    if (tableData.length === 0) return;
+
+    const saveTimeout = setTimeout(() => {
+      try {
+        const storedSessions = localStorage.getItem('studyo_sessions');
+        let sessions: SavedSession[] = storedSessions ? JSON.parse(storedSessions) : [];
+        
+        // Extract only necessary text data to save space (exclude base64 images)
+        const sessionRows: SavedSessionRow[] = tableData.map(row => ({
+          stt: row.originalRow[0],
+          original: String(row.originalRow[1] || ''),
+          vietnamese: String(row.originalRow[2] || ''),
+          imagePrompt: row.imagePrompt || '',
+          videoPrompt: row.videoPrompt || ''
+        }));
+
+        const sessionName = tableData.length > 0 
+            ? `Dự án ${new Date(parseInt(currentSessionId)).toLocaleString('vi-VN')}` 
+            : 'Dự án Mới';
+
+        const currentSession: SavedSession = {
+          id: currentSessionId,
+          name: sessionName,
+          timestamp: Date.now(),
+          rows: sessionRows
+        };
+
+        // Update or add current session
+        const existingIndex = sessions.findIndex(s => s.id === currentSessionId);
+        if (existingIndex >= 0) {
+            sessions[existingIndex] = currentSession;
+        } else {
+            sessions.push(currentSession);
+        }
+
+        // Limit to last 20 sessions to save localstorage space
+        if (sessions.length > 20) {
+            sessions = sessions.sort((a, b) => b.timestamp - a.timestamp).slice(0, 20);
+        }
+
+        localStorage.setItem('studyo_sessions', JSON.stringify(sessions));
+        // console.log("Auto-saved session", currentSessionId);
+      } catch (e) {
+        console.error("Auto-save failed (likely quota exceeded):", e);
+      }
+    }, 3000); // Debounce save every 3 seconds
+
+    return () => clearTimeout(saveTimeout);
+  }, [tableData, currentSessionId]);
 
   const showToast = useCallback((message: string, type: ToastType = 'info') => {
     const id = Date.now().toString();
@@ -228,6 +283,9 @@ export default function App() {
   const handleDocUpload = useCallback(async (file: File, method: SegmentationMethod, customRule?: string) => {
     setIsProcessingScript(true);
     
+    // Tạo session ID mới khi upload script mới
+    setCurrentSessionId(Date.now().toString());
+
     const runProcessing = async (keyIdx = 0): Promise<void> => {
         try {
             const scriptText = await readTextFile(file);
@@ -545,6 +603,11 @@ LƯU Ý: Không thêm văn bản thừa ngoài bảng Markdown.`;
           <div className="flex flex-wrap justify-between items-center gap-x-6 gap-y-3">
             <h1 onClick={handleResetApp} className="text-2xl font-bold tracking-wider gradient-text cursor-pointer">StudyAI86</h1>
             <div className="flex items-center flex-wrap justify-end gap-2">
+               <Tooltip content="Mở thư viện các phiên làm việc đã lưu">
+                    <button onClick={() => setIsLibraryOpen(true)} className="flex-shrink-0 h-10 font-bold py-2 px-4 rounded-lg bg-orange-100 text-orange-700 border border-orange-200 hover:bg-orange-200 transition-colors shadow-sm">
+                        📂 Thư viện
+                    </button>
+               </Tooltip>
                <Tooltip content="Tải xuống kịch bản gốc sạch (file .txt)">
                     <button onClick={handleDownloadScript} className="flex-shrink-0 h-10 font-semibold py-2 px-4 rounded-lg bg-gray-200 dark:bg-[#0f3a29] text-gray-800 dark:text-green-300 border border-gray-300 dark:border-green-700 hover:bg-orange-100 hover:text-orange-700 transition-colors whitespace-nowrap shadow-sm">
                         Tải kịch bản
@@ -646,6 +709,17 @@ LƯU Ý: Không thêm văn bản thừa ngoài bảng Markdown.`;
        </FileDropzone>
       </main>
 
+      <footer className="bg-white/80 dark:bg-[#020a06]/80 backdrop-blur-md border-t border-gray-200 dark:border-[#1f4d3a] py-6 mt-8">
+        <div className="container mx-auto text-center space-y-2">
+            <p className="text-sm text-gray-600 dark:text-gray-400 font-medium">
+                Bản quyền © {new Date().getFullYear()} StudyAI86. Mọi quyền được bảo lưu.
+            </p>
+            <p className="text-sm text-gray-500 dark:text-gray-500">
+                Liên hệ hỗ trợ: <a href="https://www.facebook.com/deshunvn" target="_blank" rel="noopener noreferrer" className="text-green-600 dark:text-green-400 hover:underline font-bold">DeshunVN</a>
+            </p>
+        </div>
+      </footer>
+
       <ImageModal viewData={viewingImage} tableData={tableData} onClose={() => setViewingImage(null)} />
       <SimpleImageModal imageUrl={previewImageUrl} onClose={() => setPreviewImageUrl(null)} />
       <RemakeModal rowData={remakingRow} tableData={tableData} onClose={() => setRemakingRow(null)} onRemake={(id, adj) => { setRemakingRow(null); generateImage(id, adj); }} />
@@ -665,6 +739,7 @@ LƯU Ý: Không thêm văn bản thừa ngoài bảng Markdown.`;
       />
       
       <GuideModal isOpen={isGuideOpen} onClose={() => setIsGuideOpen(false)} />
+      <LibraryModal isOpen={isLibraryOpen} onClose={() => setIsLibraryOpen(false)} showToast={showToast} onLoadSession={() => {}} />
 
       <ScriptProcessingModal 
         isOpen={!!pendingScriptFile} 
