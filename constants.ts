@@ -3,20 +3,44 @@ import type { Style } from './types';
 
 export const STYLES: Style[] = [
   {
-    title: 'Siêu Thực Ám Ảnh',
-    description: '3D thực tế, không khí lạnh lẽo, hiệu ứng Uncanny Valley gây ám ảnh.',
-    imageUrl: 'https://images.unsplash.com/photo-1509248961158-e54f6934749c?auto=format&fit=crop&w=400&q=80',
-    tooltip: 'Phù hợp cho phim kinh dị, tâm lý tội phạm (Thriller) hoặc các cảnh mộng mị.', 
-    locked: false,
-    promptTemplate: `Style: 3D photorealistic, eerie atmosphere, cold lighting, isolated subject, uncanny valley effect. Desaturated colors. Context: [A]. [CHARACTER_STYLE]`
-  },
-  {
     title: 'Siêu thực Điện ảnh',
     description: 'Photorealistic, ánh sáng 3 điểm chuyên nghiệp, độ chi tiết 8K.',
     imageUrl: 'https://images.unsplash.com/photo-1620641788421-7a1c342ea42e?auto=format&fit=crop&w=400&q=80',
     tooltip: 'Lựa chọn tốt nhất cho phim Drama, TVC quảng cáo hoặc phim tài liệu cần độ chân thực cao.', 
     locked: false,
     promptTemplate: `Style: Photorealistic, cinematic 8k movie still, high budget production, 3-point professional lighting, shallow depth of field. Context: [A]. [CHARACTER_STYLE]`
+  },
+  {
+    title: 'Phim Nhựa (Vintage 1990s)',
+    description: 'Phong cách phim cũ thập niên 90, nhiễu hạt, màu hoài cổ (VHS).',
+    imageUrl: 'https://images.unsplash.com/photo-1596566779878-a4ee6b6079c6?auto=format&fit=crop&w=400&q=80',
+    tooltip: 'Tạo cảm giác hoài niệm, video gia đình cũ hoặc phim tài liệu retro.',
+    locked: false,
+    promptTemplate: `Style: 1990s vintage film aesthetic, VHS tape texture, film grain, slightly blurred, retro color grading, flash photography feel. Context: [A]. [CHARACTER_STYLE]`
+  },
+  {
+    title: 'Studio Ghibli',
+    description: 'Nét vẽ tay thơ mộng, màu sắc tươi sáng, mây trắng trời xanh.',
+    imageUrl: 'https://images.unsplash.com/photo-1517487881594-2787fef5ebf7?auto=format&fit=crop&w=400&q=80',
+    tooltip: 'Tuyệt đẹp cho các câu chuyện chữa lành, phiêu lưu nhẹ nhàng.',
+    locked: false,
+    promptTemplate: `Style: Studio Ghibli animation style, hand-painted watercolor backgrounds, lush nature, fluffy clouds, whimsical and peaceful atmosphere. Context: [A]. [CHARACTER_STYLE]`
+  },
+  {
+    title: 'GTA Game Art',
+    description: 'Phong cách loading screen của GTA, nét vẽ Digital Art sắc sảo.',
+    imageUrl: 'https://images.unsplash.com/photo-1612157777902-5382bc0e8c07?auto=format&fit=crop&w=400&q=80',
+    tooltip: 'Cực ngầu cho video hành động, giới thiệu nhân vật hoặc gangster.',
+    locked: false,
+    promptTemplate: `Style: GTA V Loading Screen art style, digital vector illustration, cel-shaded, bold black outlines, vibrant and saturated colors, stylized realism. Context: [A]. [CHARACTER_STYLE]`
+  },
+  {
+    title: 'Siêu Thực Ám Ảnh',
+    description: '3D thực tế, không khí lạnh lẽo, hiệu ứng Uncanny Valley gây ám ảnh.',
+    imageUrl: 'https://images.unsplash.com/photo-1509248961158-e54f6934749c?auto=format&fit=crop&w=400&q=80',
+    tooltip: 'Phù hợp cho phim kinh dị, tâm lý tội phạm (Thriller) hoặc các cảnh mộng mị.', 
+    locked: false,
+    promptTemplate: `Style: 3D photorealistic, eerie atmosphere, cold lighting, isolated subject, uncanny valley effect. Desaturated colors. Context: [A]. [CHARACTER_STYLE]`
   },
   {
     title: 'Cổ tích Việt Nam',

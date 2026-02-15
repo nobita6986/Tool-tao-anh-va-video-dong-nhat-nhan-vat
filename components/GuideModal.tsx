@@ -44,7 +44,7 @@ export const GuideModal: React.FC<GuideModalProps> = ({ isOpen, onClose }) => {
               </div>
               <div className="bg-green-50 dark:bg-green-900/10 p-4 rounded-xl border border-green-100 dark:border-green-800">
                 <h4 className="font-bold mb-1">⚡ Tự động hóa quy trình</h4>
-                <p className="text-gray-600 dark:text-gray-400 text-xs">Từ kịch bản thô -> Phân cảnh -> Prompt Image -> Prompt Video -> Xuất File. Tiết kiệm 90% thời gian so với làm thủ công.</p>
+                <p className="text-gray-600 dark:text-gray-400 text-xs">Từ kịch bản thô &rarr; Phân cảnh &rarr; Prompt Image &rarr; Prompt Video &rarr; Xuất File. Tiết kiệm 90% thời gian so với làm thủ công.</p>
               </div>
               <div className="bg-green-50 dark:bg-green-900/10 p-4 rounded-xl border border-green-100 dark:border-green-800">
                 <h4 className="font-bold mb-1">🎬 Prompt Video chuyên sâu</h4>
