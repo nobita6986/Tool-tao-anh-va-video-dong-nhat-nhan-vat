@@ -13,7 +13,7 @@ export const STYLES: Style[] = [
   {
     title: 'Phim Nhựa (Vintage 1990s)',
     description: 'Phong cách phim cũ thập niên 90, nhiễu hạt, màu hoài cổ (VHS).',
-    imageUrl: 'https://images.unsplash.com/photo-1596566779878-a4ee6b6079c6?auto=format&fit=crop&w=400&q=80',
+    imageUrl: 'https://images.unsplash.com/photo-1534260164206-2a3a4a72891d?auto=format&fit=crop&w=400&q=80',
     tooltip: 'Tạo cảm giác hoài niệm, video gia đình cũ hoặc phim tài liệu retro.',
     locked: false,
     promptTemplate: `Style: 1990s vintage film aesthetic, VHS tape texture, film grain, slightly blurred, retro color grading, flash photography feel. Context: [A]. [CHARACTER_STYLE]`
@@ -29,7 +29,7 @@ export const STYLES: Style[] = [
   {
     title: 'GTA Game Art',
     description: 'Phong cách loading screen của GTA, nét vẽ Digital Art sắc sảo.',
-    imageUrl: 'https://images.unsplash.com/photo-1612157777902-5382bc0e8c07?auto=format&fit=crop&w=400&q=80',
+    imageUrl: 'https://images.unsplash.com/photo-1558742569-fe6d39d05837?auto=format&fit=crop&w=400&q=80',
     tooltip: 'Cực ngầu cho video hành động, giới thiệu nhân vật hoặc gangster.',
     locked: false,
     promptTemplate: `Style: GTA V Loading Screen art style, digital vector illustration, cel-shaded, bold black outlines, vibrant and saturated colors, stylized realism. Context: [A]. [CHARACTER_STYLE]`

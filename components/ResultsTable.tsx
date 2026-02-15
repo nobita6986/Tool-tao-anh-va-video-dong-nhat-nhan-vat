@@ -58,6 +58,19 @@ export const ResultsTable: React.FC<ResultsTableProps> = ({
 
   return (
     <div className="space-y-4">
+        {/* Hướng dẫn nhanh quy trình */}
+        <div className="bg-blue-50 dark:bg-blue-900/10 border border-blue-200 dark:border-blue-800 p-4 rounded-xl shadow-sm">
+            <h4 className="text-blue-700 dark:text-blue-300 font-bold mb-2 flex items-center gap-2">
+                <span className="text-lg">💡</span> Quy trình chuẩn để đồng nhất nhân vật:
+            </h4>
+            <ol className="list-decimal list-inside space-y-1 text-sm text-blue-800 dark:text-blue-200 ml-2">
+                <li>Tại mục <strong>Quản lý nhân vật</strong> (bên trên): Dùng tính năng <span className="font-semibold bg-white dark:bg-black/20 px-1 rounded border border-blue-200 dark:border-blue-800">🔍 Tự động lấy nhân vật</span>, sau đó upload ảnh tham chiếu rõ mặt.</li>
+                <li>Nhấn nút <span className="font-semibold bg-white dark:bg-black/20 px-1 rounded border border-blue-200 dark:border-blue-800">🪄 Tự động điền nhân vật vào cảnh</span> để AI phân tích và gán nhân vật cho từng dòng.</li>
+                <li>Kiểm tra lại cột <strong>Nhân vật</strong> trong bảng bên dưới. Nếu sai, hãy chọn lại thủ công.</li>
+                <li>Sau khi đã chốt nhân vật, mới tiến hành bấm các nút <strong>Tạo hàng loạt</strong> (Prompt ảnh, Prompt video...) ở thanh công cụ bên dưới.</li>
+            </ol>
+        </div>
+
         <div className="flex justify-between items-center bg-green-50/50 dark:bg-green-900/10 p-4 rounded-xl border border-green-100 dark:border-green-900/30">
             <p className="text-sm font-medium text-green-700 dark:text-green-400">⚡ Mẹo: Sử dụng các nút điều khiển hàng loạt để tối ưu hóa quy trình sản xuất.</p>
             <div className="flex gap-3">
