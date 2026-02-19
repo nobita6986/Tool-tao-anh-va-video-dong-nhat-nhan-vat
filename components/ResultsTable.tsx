@@ -48,8 +48,8 @@ export const ResultsTable: React.FC<ResultsTableProps> = ({
 
   const headers = [
     { text: "STT", tooltip: "Số thứ tự phân cảnh. Dùng để định danh và gán nhân vật tự động." },
-    { text: "Ngôn ngữ gốc", tooltip: "Nội dung kịch bản gốc dùng để AI hiểu sâu về bối cảnh." },
-    { text: "Tiếng Việt", tooltip: "Bản dịch tiếng Việt dùng để người dùng kiểm soát nội dung." },
+    { text: "Kịch bản Gốc", tooltip: "Nội dung gốc từ file input (Giữ nguyên văn, không sửa đổi)." },
+    { text: "Bản dịch / Hỗ trợ", tooltip: "Bản dịch (Anh <-> Việt) để tham khảo hoặc dùng cho prompt." },
     { text: "Nhân vật", tooltip: "Danh sách nhân vật xuất hiện trong cảnh này. Ảnh tham chiếu sẽ được gửi kèm prompt." },
     { text: "Prompt bối cảnh", tooltip: "Mô tả chi tiết môi trường, ánh sáng, hành động cho AI vẽ ảnh." },
     { text: "Prompt Image", tooltip: "Prompt cuối cùng được gửi đi để tạo ảnh (đã gộp style + character + context). Bạn có thể chỉnh sửa tại đây." },

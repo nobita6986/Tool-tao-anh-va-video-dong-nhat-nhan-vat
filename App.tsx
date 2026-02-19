@@ -314,11 +314,23 @@ export default function App() {
               segmentationInstruction = `Phân đoạn kịch bản theo yêu cầu sau: ${customRule}`;
             }
 
-            const systemInstruction = `Bạn là một chuyên gia kịch bản. Chuyển kịch bản thành bảng phân cảnh 5 cột Markdown: STT, Kịch bản Anh, Kịch bản Việt, Tóm tắt, Prompt tiếng Anh chi tiết.
+            // SỬA: Logic nhận diện ngôn ngữ tự động
+            // Cột 2 (Original): Giữ nguyên văn input.
+            // Cột 3 (Translated): Dịch sang ngôn ngữ đối lập (VN <-> EN).
+            const systemInstruction = `Bạn là một chuyên gia phân cảnh. Nhiệm vụ: Chuyển kịch bản thô thành bảng phân cảnh 5 cột Markdown.
+HÃY TỰ ĐỘNG NHẬN DIỆN NGÔN NGỮ ĐẦU VÀO CỦA KỊCH BẢN.
+
+CÁC CỘT:
+1. STT: Số thứ tự.
+2. Kịch bản Gốc: TRÍCH DẪN NGUYÊN VĂN từ kịch bản đầu vào. TUYỆT ĐỐI KHÔNG DỊCH, KHÔNG SỬA TỪ, KHÔNG VIẾT LẠI. Giữ nguyên ngôn ngữ gốc (Dù là Tiếng Việt, Anh, Hàn, v.v). Chỉ được phép cắt xuống dòng cho phù hợp phân cảnh.
+3. Kịch bản Dịch: 
+   - Nếu kịch bản gốc là Tiếng Việt -> Dịch sang Tiếng Anh.
+   - Nếu kịch bản gốc là Tiếng Anh hoặc ngôn ngữ khác -> Dịch sang Tiếng Việt.
+4. Tóm tắt: Tóm tắt nội dung cảnh (Tiếng Việt).
+5. Prompt Image: Viết prompt tiếng Anh mô tả hình ảnh chi tiết.
+
 QUY TẮC PHÂN CẢNH: ${segmentationInstruction}
-DỊCH THUẬT: Tự động dịch sang tiếng Anh cho cột "Kịch bản Anh".
-PROMPT: Viết prompt tiếng Anh chi tiết cho bối cảnh.
-LƯU Ý: Không thêm văn bản thừa ngoài bảng Markdown.`;
+QUAN TRỌNG: Cột "Kịch bản Gốc" phải chính xác 100% so với input.`;
 
             const response = await ai.models.generateContent({
                 model: selectedModel, 
