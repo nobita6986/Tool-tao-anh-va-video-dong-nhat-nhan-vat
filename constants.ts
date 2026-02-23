@@ -663,7 +663,7 @@ export const STYLES: Style[] = [
   {
     title: 'Cổ Trang Trung Hoa (Manhua)',
     description: 'Phong cách truyện tranh cổ trang Trung Quốc, nét mực tàu, không khí nạn đói.',
-    imageUrl: 'https://images.unsplash.com/photo-1599707367072-cd6ad66acc40?auto=format&fit=crop&w=400&q=80',
+    imageUrl: 'https://images.unsplash.com/photo-1543862475-eb136770ae9b?auto=format&fit=crop&w=400&q=80',
     tooltip: 'Phù hợp cho truyện tranh lịch sử, phim cổ trang, không khí bi thương, nạn đói.',
     locked: false,
     promptTemplate: buildTemplate(

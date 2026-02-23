@@ -1,5 +1,4 @@
 
-import { Modality } from "@google/genai";
 
 export interface Style {
   title: string;
