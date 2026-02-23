@@ -236,9 +236,8 @@ const downloadFile = (blob: Blob, filename: string) => {
 export const exportCleanScriptToTxt = (tableData: TableRowData[], filename: string): boolean => {
     const lines = tableData
         .map(row => {
-            // SỬA: Ưu tiên lấy cột index 1 (Kịch bản Gốc/Input) để xuất file sạch.
-            // Cột 1 là nguyên văn, Cột 2 là bản dịch.
-            const content = String(row.originalRow[1] || row.originalRow[2] || '').trim();
+            // SỬA: Lấy cột Kịch bản gốc (index 1) làm kịch bản sạch theo yêu cầu
+            const content = String(row.originalRow[1] || '').trim();
             if (!content) return null;
             // Xóa tất cả dấu xuống dòng trong cùng 1 đoạn để đảm bảo 1 đoạn là 1 dòng
             return content.replace(/[\r\n]+/g, ' ');

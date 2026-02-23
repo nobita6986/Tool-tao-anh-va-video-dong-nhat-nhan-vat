@@ -659,5 +659,30 @@ export const STYLES: Style[] = [
         "Blocky, geometric proportions.",
         "Geometric landscape, sharp shadows, soft ambient occlusion, abstract digital world."
     )
+  },
+  {
+    title: 'Cổ Trang Trung Hoa (Manhua)',
+    description: 'Phong cách truyện tranh cổ trang Trung Quốc, nét mực tàu, không khí nạn đói.',
+    imageUrl: 'https://images.unsplash.com/photo-1599707367072-cd6ad66acc40?auto=format&fit=crop&w=400&q=80',
+    tooltip: 'Phù hợp cho truyện tranh lịch sử, phim cổ trang, không khí bi thương, nạn đói.',
+    locked: false,
+    promptTemplate: buildTemplate(
+        "Ancient Chinese manhua illustration style, pure historical ancient China setting, famine era atmosphere, no modern elements, traditional ink-style linework, expressive faces, realistic hardship depiction, muted earthy color palette, dusty brown and faded gray tones, soft natural cinematic lighting, detailed fabric texture, worn and patched clothing realism, subtle dramatic composition.",
+        "rough, slightly dirty texture consistent with famine conditions, natural tones, no glossy or modern rendering",
+        "coarse ancient linen clothing with visible wear, patches, faded fabric, historically accurate peasant attire",
+        "realistic ancient Chinese manhua facial structure, expressive but not exaggerated, visible fatigue and hardship details",
+        "dressed in similar ancient peasant clothing, thin bodies, worn faces, simple traditional hairstyles (bun or loose tied hair), no modern elements",
+        "realistic human proportions, slightly thin due to famine setting, no chibi, no stylization exaggeration",
+        "poor rural ancient Chinese village environment, cracked mud walls, straw roof structures, rough wooden furniture, clay bowls, farming tools, dusty air, historically accurate textures"
+    ),
+    sceneTemplate: buildSceneTemplate(
+        "Ancient Chinese manhua illustration style, pure historical ancient China setting, famine era atmosphere, no modern elements, traditional ink-style linework, expressive faces, realistic hardship depiction, muted earthy color palette, dusty brown and faded gray tones, soft natural cinematic lighting, detailed fabric texture, worn and patched clothing realism, subtle dramatic composition.",
+        "rough, slightly dirty texture consistent with famine conditions, natural tones, no glossy or modern rendering",
+        "coarse ancient linen clothing with visible wear, patches, faded fabric, historically accurate peasant attire",
+        "realistic ancient Chinese manhua facial structure, expressive but not exaggerated, visible fatigue and hardship details",
+        "dressed in similar ancient peasant clothing, thin bodies, worn faces, simple traditional hairstyles (bun or loose tied hair), no modern elements",
+        "realistic human proportions, slightly thin due to famine setting, no chibi, no stylization exaggeration",
+        "poor rural ancient Chinese village environment, cracked mud walls, straw roof structures, rough wooden furniture, clay bowls, farming tools, dusty air, historically accurate textures"
+    )
   }
 ];
