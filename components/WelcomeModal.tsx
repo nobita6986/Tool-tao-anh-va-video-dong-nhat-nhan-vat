@@ -57,6 +57,13 @@ export const WelcomeModal: React.FC<WelcomeModalProps> = ({ isOpen, onClose, onO
                 </p>
             </div>
 
+            <div className="bg-blue-50 dark:bg-blue-900/10 p-4 rounded-lg border border-blue-100 dark:border-blue-800 flex gap-3 items-start">
+                <span className="text-xl">ℹ️</span>
+                <p className="text-sm text-blue-800 dark:text-blue-200 font-medium">
+                    Chúng tôi có tool ghép tạo video từ ảnh/video khớp lời thoại với Audio, Voice chạy tới đâu là Ảnh/video hiển thị tới đó. Mời các bạn tham khảo: <a href="https://www.ai86.pro/" target="_blank" rel="noopener noreferrer" className="underline font-bold hover:text-blue-600">AI86.Pro</a>
+                </p>
+            </div>
+
             <div className="grid grid-cols-2 gap-4 pt-2">
                 <button 
                     onClick={onOpenGuide}

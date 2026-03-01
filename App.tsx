@@ -59,6 +59,8 @@ const getCharacterIndicesFromStt = (stt: string | number, characters: Character[
 
 const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
+import { PromoPopup } from './components/PromoPopup';
+
 export default function App() {
   const [characters, setCharacters] = useState<Character[]>([{ name: '', images: [], stylePrompt: '' }]);
   const [selectedStyle, setSelectedStyle] = useState<Style | null>(null);
@@ -780,6 +782,7 @@ LƯU Ý: Không thêm văn bản thừa ngoài bảng Markdown.`;
       />
 
       <ChatModal isOpen={chatState === 'open'} onClose={() => setChatState('closed')} onMinimize={() => setChatState('minimized')} messages={chatMessages} onSendMessage={handleSendMessageToAI} isAiReplying={isAiReplying} onPresentScript={() => {}} />
+      <PromoPopup />
     </>
   );
 }

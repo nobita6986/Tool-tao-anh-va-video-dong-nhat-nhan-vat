@@ -1,5 +1,6 @@
 
 import type { ExcelRow, TableRowData, Style, Character, SavedSessionRow } from '../types';
+import { ADJUSTMENT_OPTIONS } from '../constants';
 
 // These are expected to be available globally from CDN scripts in index.html
 declare const XLSX: any;
@@ -181,7 +182,10 @@ export const getPromptAndPartsForRow = ({ row, rowIndex, tableData, selectedStyl
 
     if (adjustments) {
         let adjustmentText = " **ADJUSTMENTS:** Based on feedback, apply the following changes:";
-        if (adjustments.options.length > 0) adjustmentText += " Apply selected adjustments logic.";
+        if (adjustments.options.length > 0) {
+            const selectedDescriptions = adjustments.options.map((optKey: string) => ADJUSTMENT_OPTIONS[optKey]).filter(Boolean).join(' ');
+            adjustmentText += ` ${selectedDescriptions}`;
+        }
         if (adjustments.manualPrompt) {
             adjustmentText += ` User Manual Request: ${adjustments.manualPrompt}`;
             const sceneMatches = adjustments.manualPrompt.match(/\[scene_([\w.-]+)\]/g);

@@ -59,6 +59,21 @@ OUTPUT GUIDE: Do not write any text, title, or description. Your entire response
 export const PRESET_PROMPT_SEGMENT = `Chia nhỏ kịch bản trên ra thành các dòng ngắn 7-15 chữ...`;
 export const PRESET_PROMPT_CONTEXT = `”Phân tích kịch bản gốc đã được cung cấp...`;
 
+export const ADJUSTMENT_OPTIONS: { [key: string]: string } = {
+  // Logic & Policy
+  RE_EVALUATE_LOGIC: 'Logic lại ảnh: Yêu cầu đọc lại "Nguyên văn phân cảnh" để hiểu rõ câu chuyện.',
+  BYPASS_POLICY: 'Lách chính sách: Viết lại prompt để tránh vi phạm chính sách nội dung.',
+  // Visual Consistency
+  STYLE_CONSISTENCY: 'Đồng nhất phong cách vẽ: Yêu cầu phong cách nghệ thuật phải nhất quán với các ảnh đã tạo thành công trước đó.',
+  CHARACTER_STYLE: 'Phong cách nhân vật: Yêu cầu tuân thủ nghiêm ngặt phong cách nhân vật đã mô tả.',
+  CHARACTER_CONSISTENCY: 'Đồng nhất nhân vật: Yêu cầu xem lại ảnh gốc để đồng nhất nhân vật.',
+  COSTUME_CONSISTENCY: 'Đồng nhất trang phục: Đồng nhất trang phục với các scene cùng bối cảnh.',
+  // Cinematography
+  CAMERA_POSITION: 'Trùng vị trí camera: Yêu cầu đổi một góc camera khác với ảnh đã tạo trước đó.',
+  CHARACTER_ANGLE: 'Trùng góc nhân vật: Đổi góc độ nhìn nhân vật (ví dụ: trực diện sang nghiêng, sau lưng,...).',
+  MATCH_ASPECT_RATIO: 'Sai tỉ lệ ảnh: Yêu cầu tỉ lệ khung ảnh phải nhất quán với ảnh gần nhất.',
+};
+
 export const STYLES: Style[] = [
   {
     title: 'Siêu thực Điện ảnh',
