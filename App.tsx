@@ -316,9 +316,10 @@ export default function App() {
               segmentationInstruction = `Phân đoạn kịch bản theo yêu cầu sau: ${customRule}`;
             }
 
-            const systemInstruction = `Bạn là một chuyên gia kịch bản. Chuyển kịch bản thành bảng phân cảnh 5 cột Markdown: STT, Kịch bản Anh, Kịch bản Việt, Tóm tắt, Prompt tiếng Anh chi tiết.
+            const systemInstruction = `Bạn là một chuyên gia kịch bản. Chuyển kịch bản thành bảng phân cảnh 5 cột Markdown: STT, Ngôn ngữ gốc, Tiếng Việt, Tóm tắt, Prompt tiếng Anh chi tiết.
 QUY TẮC PHÂN CẢNH: ${segmentationInstruction}
-DỊCH THUẬT: Tự động dịch sang tiếng Anh cho cột "Kịch bản Anh".
+NGÔN NGỮ GỐC: Giữ nguyên văn bản gốc của kịch bản đã upload, chỉ thực hiện phân đoạn theo yêu cầu, tuyệt đối không tóm tắt hay thay đổi từ ngữ.
+TIẾNG VIỆT: Dịch "Ngôn ngữ gốc" sang tiếng Việt (nếu "Ngôn ngữ gốc" đã là tiếng Việt thì giữ nguyên).
 PROMPT: Viết prompt tiếng Anh chi tiết cho bối cảnh.
 LƯU Ý: Không thêm văn bản thừa ngoài bảng Markdown.`;
 
