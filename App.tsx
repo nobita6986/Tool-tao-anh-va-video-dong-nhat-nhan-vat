@@ -63,10 +63,17 @@ const attemptKey4UGeneration = async (
     systemInstruction: string,
     scriptText: string,
     apiKey: string,
-    proxyUrl: string,
+    baseUrl: string,
     imageBase64?: string
 ): Promise<any[]> => {
-    const endpoint = proxyUrl || 'https://api.key4u.shop/v1/chat/completions';
+    let endpoint = baseUrl || 'https://api.key4u.shop/v1/chat/completions';
+    if (!endpoint.endsWith('/chat/completions')) {
+        endpoint = endpoint.replace(/\/+$/, '');
+        if (!endpoint.endsWith('/v1')) {
+            endpoint += '/v1';
+        }
+        endpoint += '/chat/completions';
+    }
     
     const userContent: any[] = [
         { type: "text", text: scriptText }
@@ -162,9 +169,10 @@ export default function App() {
     return saved ? JSON.parse(saved) : [];
   });
 
-  const [key4uConfig, setKey4uConfig] = useState<{ apiKey: string; proxyUrl: string; enabled: boolean }>(() => {
+  const [key4uConfig, setKey4uConfig] = useState<{ apiKey: string; baseUrl: string; enabled: boolean }>(() => {
     const saved = localStorage.getItem('key4u_config');
-    return saved ? JSON.parse(saved) : { apiKey: '', proxyUrl: 'https://api.key4u.shop/v1', enabled: false };
+    const parsed = saved ? JSON.parse(saved) : null;
+    return parsed ? { apiKey: parsed.apiKey || '', baseUrl: parsed.baseUrl || parsed.proxyUrl || 'https://api.key4u.shop/v1', enabled: parsed.enabled || false } : { apiKey: '', baseUrl: 'https://api.key4u.shop/v1', enabled: false };
   });
 
   const [pendingScriptFile, setPendingScriptFile] = useState<File | null>(null);
@@ -266,11 +274,11 @@ export default function App() {
 
   const getAiInstance = useCallback((keyIndex = 0) => {
     let key = '';
-    let proxyUrl = undefined;
+    let baseUrl = undefined;
 
     if (key4uConfig.enabled && key4uConfig.apiKey) {
         key = key4uConfig.apiKey;
-        proxyUrl = key4uConfig.proxyUrl;
+        baseUrl = key4uConfig.baseUrl;
     } else {
         const availableKeys = apiKeys.length > 0 ? apiKeys : [process.env.API_KEY || ''];
         const safeIndex = keyIndex % availableKeys.length;
@@ -279,10 +287,10 @@ export default function App() {
     
     // Mask key for logging safety
     const maskedKey = key.length > 8 ? `${key.substring(0, 4)}...${key.substring(key.length - 4)}` : '***';
-    console.log(`[AI Engine] Sử dụng Key: ${maskedKey}${proxyUrl ? ` qua Proxy: ${proxyUrl}` : ''}`);
+    console.log(`[AI Engine] Sử dụng Key: ${maskedKey}${baseUrl ? ` qua Base URL: ${baseUrl}` : ''}`);
     
     return {
-        ai: new GoogleGenAI({ apiKey: key, httpOptions: proxyUrl ? { baseUrl: proxyUrl } : undefined }),
+        ai: new GoogleGenAI({ apiKey: key, httpOptions: baseUrl ? { baseUrl: baseUrl } : undefined }),
         keyCount: key4uConfig.enabled ? 1 : (apiKeys.length > 0 ? apiKeys.length : 1),
         currentIndex: keyIndex
     };
@@ -394,7 +402,7 @@ LƯU Ý: Chỉ trả về mảng JSON hợp lệ, không thêm văn bản thừa
                     systemInstruction,
                     `Kịch bản thô: "${scriptText}"`,
                     key4uConfig.apiKey,
-                    key4uConfig.proxyUrl
+                    key4uConfig.baseUrl
                 );
 
                 if (!Array.isArray(scenes) || scenes.length === 0) throw new Error("AI không tạo được dữ liệu kịch bản hợp lệ.");

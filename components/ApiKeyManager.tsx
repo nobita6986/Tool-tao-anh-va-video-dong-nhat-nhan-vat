@@ -9,8 +9,8 @@ interface ApiKeyManagerProps {
   onClose: () => void;
   apiKeys: string[];
   setApiKeys: (keys: string[]) => void;
-  key4uConfig: { apiKey: string; proxyUrl: string; enabled: boolean };
-  setKey4uConfig: (config: { apiKey: string; proxyUrl: string; enabled: boolean }) => void;
+  key4uConfig: { apiKey: string; baseUrl: string; enabled: boolean };
+  setKey4uConfig: (config: { apiKey: string; baseUrl: string; enabled: boolean }) => void;
   selectedModel: GeminiModel;
   onSelectModel: (model: GeminiModel) => void;
   selectedImageModel: ImageGenModel;
@@ -42,13 +42,21 @@ export const ApiKeyManager: React.FC<ApiKeyManagerProps> = ({
   const [newKey, setNewKey] = useState('');
   const [validationStatus, setValidationStatus] = useState<ValidationStatus>('idle');
   const [validationMessage, setValidationMessage] = useState<string | null>(null);
+  const [activeTab, setActiveTab] = useState<'gemini' | 'key4u'>('gemini');
 
   if (!isOpen) return null;
 
-  const validateApiKey = async (key: string, proxyUrl?: string): Promise<boolean> => {
+  const validateApiKey = async (key: string, baseUrl?: string): Promise<boolean> => {
     try {
-      if (proxyUrl) {
-        const endpoint = proxyUrl || 'https://api.key4u.shop/v1/chat/completions';
+      if (baseUrl) {
+        let endpoint = baseUrl || 'https://api.key4u.shop/v1/chat/completions';
+        if (!endpoint.endsWith('/chat/completions')) {
+            endpoint = endpoint.replace(/\/+$/, '');
+            if (!endpoint.endsWith('/v1')) {
+                endpoint += '/v1';
+            }
+            endpoint += '/chat/completions';
+        }
         const payload = {
             model: "gpt-4o-mini",
             messages: [{ role: "user", content: "hi" }],
@@ -101,13 +109,13 @@ export const ApiKeyManager: React.FC<ApiKeyManagerProps> = ({
   };
 
   const handleTestKey4U = async () => {
-    if (!key4uConfig.apiKey || !key4uConfig.proxyUrl) {
-        showToast('Vui lòng nhập đầy đủ API Key và Proxy URL', 'warning');
+    if (!key4uConfig.apiKey || !key4uConfig.baseUrl) {
+        showToast('Vui lòng nhập đầy đủ API Key và Base URL', 'warning');
         return;
     }
     setValidationStatus('validating');
     setValidationMessage(null);
-    const isValid = await validateApiKey(key4uConfig.apiKey, key4uConfig.proxyUrl);
+    const isValid = await validateApiKey(key4uConfig.apiKey, key4uConfig.baseUrl);
     if (isValid) {
         showToast('Kết nối Key4U thành công!', 'success');
         setValidationStatus('idle');
@@ -125,116 +133,137 @@ export const ApiKeyManager: React.FC<ApiKeyManagerProps> = ({
             <button onClick={onClose} className="text-gray-500 dark:text-gray-400 text-3xl">&times;</button>
         </div>
         
+        <div className="flex border-b border-gray-200 dark:border-gray-700">
+            <button
+                className={`py-2 px-4 font-semibold text-sm border-b-2 transition-colors ${activeTab === 'gemini' ? 'border-green-500 text-green-600 dark:text-green-400' : 'border-transparent text-gray-500 hover:text-gray-700 dark:hover:text-gray-300'}`}
+                onClick={() => setActiveTab('gemini')}
+            >
+                Gemini API
+            </button>
+            <button
+                className={`py-2 px-4 font-semibold text-sm border-b-2 transition-colors ${activeTab === 'key4u' ? 'border-green-500 text-green-600 dark:text-green-400' : 'border-transparent text-gray-500 hover:text-gray-700 dark:hover:text-gray-300'}`}
+                onClick={() => setActiveTab('key4u')}
+            >
+                Key4U API
+            </button>
+        </div>
+
         <div className="space-y-6">
-            <div className="grid md:grid-cols-2 gap-4">
-                <div>
-                    <label className="block text-sm font-semibold mb-2">Model Xử Lý Kịch Bản</label>
-                    <select 
-                        value={selectedModel}
-                        onChange={(e) => onSelectModel(e.target.value as GeminiModel)}
-                        className="w-full bg-gray-50 dark:bg-[#020a06] border border-gray-300 dark:border-[#1f4d3a] text-gray-900 dark:text-gray-200 p-3 rounded-lg outline-none focus:ring-2 focus:ring-green-400 transition-all font-medium text-sm"
-                    >
-                        {MODELS.map(m => <option key={m.value} value={m.value}>{m.label}</option>)}
-                    </select>
-                </div>
-                <div>
-                    <label className="block text-sm font-semibold mb-2">Model Tạo Ảnh (Image Gen)</label>
-                    <select 
-                        value={selectedImageModel}
-                        onChange={(e) => onSelectImageModel(e.target.value as ImageGenModel)}
-                        className="w-full bg-gray-50 dark:bg-[#020a06] border border-gray-300 dark:border-[#1f4d3a] text-gray-900 dark:text-gray-200 p-3 rounded-lg outline-none focus:ring-2 focus:ring-green-400 transition-all font-medium text-sm"
-                    >
-                        {IMAGE_MODELS.map(m => <option key={m.value} value={m.value}>{m.label}</option>)}
-                    </select>
-                </div>
-            </div>
-            
-            <div className="bg-gray-100 dark:bg-green-900/10 p-4 rounded-lg border border-gray-200 dark:border-green-900/20">
-                <p className="text-xs font-bold text-gray-700 dark:text-green-300 mb-1">Thông tin Model ảnh đang chọn:</p>
-                <p className="text-xs text-gray-600 dark:text-gray-400 italic">
-                    {IMAGE_MODELS.find(m => m.value === selectedImageModel)?.desc}
-                </p>
-            </div>
-
-            <div className="border-t border-gray-200 dark:border-gray-700 pt-4 space-y-4">
-                <div className="flex items-center justify-between">
-                    <label className="block text-sm font-semibold">Cấu hình Proxy (Key4U / Khác)</label>
-                    <div className="flex items-center gap-2">
-                        <span className="text-[10px] text-gray-500 uppercase font-bold">{key4uConfig.enabled ? 'Đang dùng Proxy' : 'Dùng Key trực tiếp'}</span>
-                        <button 
-                            onClick={() => setKey4uConfig({ ...key4uConfig, enabled: !key4uConfig.enabled })}
-                            className={`w-10 h-5 rounded-full transition-all relative ${key4uConfig.enabled ? 'bg-green-600' : 'bg-gray-400'}`}
-                        >
-                            <div className={`absolute top-0.5 w-4 h-4 bg-white rounded-full transition-all ${key4uConfig.enabled ? 'left-5' : 'left-0.5'}`}></div>
-                        </button>
+            {activeTab === 'gemini' && (
+                <>
+                    <div className="grid md:grid-cols-2 gap-4">
+                        <div>
+                            <label className="block text-sm font-semibold mb-2">Model Xử Lý Kịch Bản</label>
+                            <select 
+                                value={selectedModel}
+                                onChange={(e) => onSelectModel(e.target.value as GeminiModel)}
+                                className="w-full bg-gray-50 dark:bg-[#020a06] border border-gray-300 dark:border-[#1f4d3a] text-gray-900 dark:text-gray-200 p-3 rounded-lg outline-none focus:ring-2 focus:ring-green-400 transition-all font-medium text-sm"
+                            >
+                                {MODELS.map(m => <option key={m.value} value={m.value}>{m.label}</option>)}
+                            </select>
+                        </div>
+                        <div>
+                            <label className="block text-sm font-semibold mb-2">Model Tạo Ảnh (Image Gen)</label>
+                            <select 
+                                value={selectedImageModel}
+                                onChange={(e) => onSelectImageModel(e.target.value as ImageGenModel)}
+                                className="w-full bg-gray-50 dark:bg-[#020a06] border border-gray-300 dark:border-[#1f4d3a] text-gray-900 dark:text-gray-200 p-3 rounded-lg outline-none focus:ring-2 focus:ring-green-400 transition-all font-medium text-sm"
+                            >
+                                {IMAGE_MODELS.map(m => <option key={m.value} value={m.value}>{m.label}</option>)}
+                            </select>
+                        </div>
                     </div>
-                </div>
+                    
+                    <div className="bg-gray-100 dark:bg-green-900/10 p-4 rounded-lg border border-gray-200 dark:border-green-900/20">
+                        <p className="text-xs font-bold text-gray-700 dark:text-green-300 mb-1">Thông tin Model ảnh đang chọn:</p>
+                        <p className="text-xs text-gray-600 dark:text-gray-400 italic">
+                            {IMAGE_MODELS.find(m => m.value === selectedImageModel)?.desc}
+                        </p>
+                    </div>
 
-                {key4uConfig.enabled && (
-                    <div className="space-y-3 p-3 bg-gray-50 dark:bg-[#020a06] rounded-lg border border-gray-200 dark:border-[#1f4d3a] animate-in slide-in-from-top-2 duration-200">
-                        <div className="space-y-1">
-                            <label className="text-[10px] font-bold text-gray-500 uppercase">Proxy URL (Mặc định Key4U)</label>
-                            <input 
-                                type="text"
-                                value={key4uConfig.proxyUrl}
-                                onChange={(e) => setKey4uConfig({ ...key4uConfig, proxyUrl: e.target.value })}
-                                placeholder="https://api.key4u.shop/v1"
-                                className="w-full bg-white dark:bg-black/20 border border-gray-300 dark:border-gray-700 p-2 rounded text-xs outline-none focus:ring-1 focus:ring-green-500"
+                    <div className="border-t border-gray-200 dark:border-gray-700 pt-4">
+                        <label className="block text-sm font-semibold mb-2">Danh sách API Key ({apiKeys.length})</label>
+                        <div className="space-y-2 max-h-40 overflow-y-auto pr-2 mb-4 scrollbar-thin">
+                            {apiKeys.map((key, idx) => (
+                                <div key={idx} className="flex items-center justify-between bg-gray-50 dark:bg-[#020a06] p-2 rounded border border-gray-200 dark:border-[#1f4d3a]">
+                                    <span className="font-mono text-xs text-gray-600 dark:text-gray-400 break-all">{key}</span>
+                                    <button onClick={() => setApiKeys(apiKeys.filter((_, i) => i !== idx))} className="text-red-500 text-xs font-bold hover:text-red-600 transition-colors ml-4 flex-shrink-0">Xóa</button>
+                                </div>
+                            ))}
+                            {apiKeys.length === 0 && <p className="text-xs text-gray-500 text-center italic py-4">Chưa có key nào. Ứng dụng sẽ dùng key mặc định hệ thống.</p>}
+                        </div>
+
+                        <div className="flex gap-2">
+                            <input
+                              type="text"
+                              value={newKey}
+                              onChange={(e) => setNewKey(e.target.value)}
+                              placeholder="Nhập API Key mới..."
+                              className="flex-grow bg-gray-50 dark:bg-[#020a06] border border-gray-300 dark:border-[#1f4d3a] p-2 rounded-lg outline-none focus:ring-2 focus:ring-green-400"
                             />
+                            <button 
+                                onClick={handleAddKey}
+                                disabled={validationStatus === 'validating' || !newKey.trim()}
+                                className="bg-green-600 text-white px-6 py-2 rounded-lg font-semibold hover:bg-green-500 disabled:opacity-50 transition-all"
+                            >
+                                {validationStatus === 'validating' ? 'Đang kiểm tra...' : 'Thêm Key'}
+                            </button>
                         </div>
-                        <div className="space-y-1">
-                            <label className="text-[10px] font-bold text-gray-500 uppercase">Key4U API Key</label>
-                            <div className="flex gap-2">
-                                <input 
-                                    type="password"
-                                    value={key4uConfig.apiKey}
-                                    onChange={(e) => setKey4uConfig({ ...key4uConfig, apiKey: e.target.value })}
-                                    placeholder="sk-..."
-                                    className="flex-grow bg-white dark:bg-black/20 border border-gray-300 dark:border-gray-700 p-2 rounded text-xs outline-none focus:ring-1 focus:ring-green-500"
-                                />
-                                <button 
-                                    onClick={handleTestKey4U}
-                                    className="bg-green-600 text-white px-3 py-1 rounded text-xs font-bold hover:bg-green-500 transition-all"
-                                >
-                                    Thử kết nối
-                                </button>
-                            </div>
-                        </div>
-                        <p className="text-[9px] text-gray-500 italic">Lưu ý: Khi bật Proxy, hệ thống sẽ ưu tiên dùng Key4U thay vì danh sách Key bên dưới.</p>
+                        {validationMessage && <p className="text-[10px] mt-1 text-red-400 font-medium">{validationMessage}</p>}
                     </div>
-                )}
-            </div>
+                </>
+            )}
 
-            <div className="border-t border-gray-200 dark:border-gray-700 pt-4">
-                <label className="block text-sm font-semibold mb-2">Danh sách API Key ({apiKeys.length})</label>
-                <div className="space-y-2 max-h-40 overflow-y-auto pr-2 mb-4 scrollbar-thin">
-                    {apiKeys.map((key, idx) => (
-                        <div key={idx} className="flex items-center justify-between bg-gray-50 dark:bg-[#020a06] p-2 rounded border border-gray-200 dark:border-[#1f4d3a]">
-                            <span className="font-mono text-xs text-gray-600 dark:text-gray-400 break-all">{key}</span>
-                            <button onClick={() => setApiKeys(apiKeys.filter((_, i) => i !== idx))} className="text-red-500 text-xs font-bold hover:text-red-600 transition-colors ml-4 flex-shrink-0">Xóa</button>
+            {activeTab === 'key4u' && (
+                <div className="space-y-4">
+                    <div className="flex items-center justify-between">
+                        <label className="block text-sm font-semibold">Sử dụng Key4U API</label>
+                        <div className="flex items-center gap-2">
+                            <span className="text-[10px] text-gray-500 uppercase font-bold">{key4uConfig.enabled ? 'Đang bật' : 'Đang tắt'}</span>
+                            <button 
+                                onClick={() => setKey4uConfig({ ...key4uConfig, enabled: !key4uConfig.enabled })}
+                                className={`w-10 h-5 rounded-full transition-all relative ${key4uConfig.enabled ? 'bg-green-600' : 'bg-gray-400'}`}
+                            >
+                                <div className={`absolute top-0.5 w-4 h-4 bg-white rounded-full transition-all ${key4uConfig.enabled ? 'left-5' : 'left-0.5'}`}></div>
+                            </button>
                         </div>
-                    ))}
-                    {apiKeys.length === 0 && <p className="text-xs text-gray-500 text-center italic py-4">Chưa có key nào. Ứng dụng sẽ dùng key mặc định hệ thống.</p>}
-                </div>
+                    </div>
 
-                <div className="flex gap-2">
-                    <input
-                      type="text"
-                      value={newKey}
-                      onChange={(e) => setNewKey(e.target.value)}
-                      placeholder="Nhập API Key mới..."
-                      className="flex-grow bg-gray-50 dark:bg-[#020a06] border border-gray-300 dark:border-[#1f4d3a] p-2 rounded-lg outline-none focus:ring-2 focus:ring-green-400"
-                    />
-                    <button 
-                        onClick={handleAddKey}
-                        disabled={validationStatus === 'validating' || !newKey.trim()}
-                        className="bg-green-600 text-white px-6 py-2 rounded-lg font-semibold hover:bg-green-500 disabled:opacity-50 transition-all"
-                    >
-                        {validationStatus === 'validating' ? 'Đang kiểm tra...' : 'Thêm Key'}
-                    </button>
+                    {key4uConfig.enabled && (
+                        <div className="space-y-3 p-3 bg-gray-50 dark:bg-[#020a06] rounded-lg border border-gray-200 dark:border-[#1f4d3a] animate-in slide-in-from-top-2 duration-200">
+                            <div className="space-y-1">
+                                <label className="text-[10px] font-bold text-gray-500 uppercase">Base URL</label>
+                                <input 
+                                    type="text"
+                                    value={key4uConfig.baseUrl}
+                                    onChange={(e) => setKey4uConfig({ ...key4uConfig, baseUrl: e.target.value })}
+                                    placeholder="https://api.key4u.shop/v1"
+                                    className="w-full bg-white dark:bg-black/20 border border-gray-300 dark:border-gray-700 p-2 rounded text-xs outline-none focus:ring-1 focus:ring-green-500"
+                                />
+                            </div>
+                            <div className="space-y-1">
+                                <label className="text-[10px] font-bold text-gray-500 uppercase">API Key</label>
+                                <div className="flex gap-2">
+                                    <input 
+                                        type="password"
+                                        value={key4uConfig.apiKey}
+                                        onChange={(e) => setKey4uConfig({ ...key4uConfig, apiKey: e.target.value })}
+                                        placeholder="sk-..."
+                                        className="flex-grow bg-white dark:bg-black/20 border border-gray-300 dark:border-gray-700 p-2 rounded text-xs outline-none focus:ring-1 focus:ring-green-500"
+                                    />
+                                    <button 
+                                        onClick={handleTestKey4U}
+                                        className="bg-green-600 text-white px-3 py-1 rounded text-xs font-bold hover:bg-green-500 transition-all"
+                                    >
+                                        Thử kết nối
+                                    </button>
+                                </div>
+                            </div>
+                            <p className="text-[9px] text-gray-500 italic">Lưu ý: Khi bật Key4U, hệ thống sẽ ưu tiên dùng Key4U thay vì Gemini API.</p>
+                        </div>
+                    )}
                 </div>
-                {validationMessage && <p className="text-[10px] mt-1 text-red-400 font-medium">{validationMessage}</p>}
-            </div>
+            )}
         </div>
 
         <div className="text-center pt-4">
