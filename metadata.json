@@ -1,5 +1,5 @@
 {
-  "name": "Tool chuyển thể kịch bản đồng nhất nhân vật_VIP",
-  "description": "Create consistent AI images by combining predefined styles with custom contexts and reference character images.",
+  "name": "Storyboard AI VIP",
+  "description": "Phân tích kịch bản và chia phân cảnh thông minh với hệ thống AI đa lớp (Key4U & Gemini).",
   "requestFramePermissions": []
 }

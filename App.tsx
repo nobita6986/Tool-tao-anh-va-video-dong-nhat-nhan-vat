@@ -1,6 +1,5 @@
 
 import React, { useState, useCallback, ChangeEvent, useEffect, useRef } from 'react';
-import { createProxyClient } from './src/lib/ai-provider';
 import { GoogleGenAI } from '@google/genai';
 import { STYLES, PRESET_PROMPT_CONTEXT } from './constants';
 import type { Style, Character, TableRowData, ExcelRow, AdjustmentOptions, ColumnMapping, ChatMessage, GeminiModel, ImageGenModel, AspectRatio, SavedSession, SavedSessionRow } from './types';
@@ -60,6 +59,59 @@ const getCharacterIndicesFromStt = (stt: string | number, characters: Character[
 
 const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
+const attemptKey4UGeneration = async (
+    systemInstruction: string,
+    scriptText: string,
+    apiKey: string,
+    proxyUrl: string,
+    imageBase64?: string
+): Promise<any[]> => {
+    const endpoint = proxyUrl || 'https://api.key4u.shop/v1/chat/completions';
+    
+    const userContent: any[] = [
+        { type: "text", text: scriptText }
+    ];
+
+    if (imageBase64) {
+        userContent.push({
+            type: "image_url",
+            image_url: {
+                url: imageBase64
+            }
+        });
+    }
+
+    const payload = {
+        model: "gpt-4o-mini",
+        messages: [
+            { role: "system", content: systemInstruction },
+            { role: "user", content: userContent }
+        ],
+        temperature: 0.7
+    };
+
+    const response = await fetch(endpoint, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${apiKey}`
+        },
+        body: JSON.stringify(payload)
+    });
+
+    if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.error?.message || `HTTP error! status: ${response.status}`);
+    }
+
+    const data = await response.json();
+    const content = data.choices?.[0]?.message?.content || '';
+    
+    // Clean markdown
+    const cleanedContent = content.replace(/```json/g, '').replace(/```/g, '').trim();
+    return JSON.parse(cleanedContent);
+};
+
 import { PromoPopup } from './components/PromoPopup';
 
 export default function App() {
@@ -110,9 +162,9 @@ export default function App() {
     return saved ? JSON.parse(saved) : [];
   });
 
-  const [key4uConfig, setKey4uConfig] = useState<{ apiKey: string; proxyUrl: string }>(() => {
+  const [key4uConfig, setKey4uConfig] = useState<{ apiKey: string; proxyUrl: string; enabled: boolean }>(() => {
     const saved = localStorage.getItem('key4u_config');
-    return saved ? JSON.parse(saved) : { apiKey: '', proxyUrl: 'https://api.key4u.shop' };
+    return saved ? JSON.parse(saved) : { apiKey: '', proxyUrl: 'https://api.key4u.shop/v1', enabled: false };
   });
 
   const [pendingScriptFile, setPendingScriptFile] = useState<File | null>(null);
@@ -215,44 +267,23 @@ export default function App() {
   const getAiInstance = useCallback((keyIndex = 0) => {
     let key = '';
     let proxyUrl = undefined;
-    let provider = 'gemini';
 
-    if (key4uConfig.apiKey) {
+    if (key4uConfig.enabled && key4uConfig.apiKey) {
         key = key4uConfig.apiKey;
         proxyUrl = key4uConfig.proxyUrl;
-        provider = 'key4u';
     } else {
         const availableKeys = apiKeys.length > 0 ? apiKeys : [process.env.API_KEY || ''];
         const safeIndex = keyIndex % availableKeys.length;
         key = availableKeys[safeIndex];
-        provider = 'gemini';
     }
     
     // Mask key for logging safety
     const maskedKey = key.length > 8 ? `${key.substring(0, 4)}...${key.substring(key.length - 4)}` : '***';
-    console.log(`[AI Engine] [${provider.toUpperCase()}] Sử dụng Key: ${maskedKey}${proxyUrl ? ` qua Proxy: ${proxyUrl}` : ''}`);
+    console.log(`[AI Engine] Sử dụng Key: ${maskedKey}${proxyUrl ? ` qua Proxy: ${proxyUrl}` : ''}`);
     
-    // If using Key4U, we use a custom fetch-based implementation because Key4U is OpenAI-compatible
-    if (provider === 'key4u') {
-        return {
-            ai: createProxyClient(key, proxyUrl || 'https://api.key4u.shop', 'openai'),
-            keyCount: 1,
-            currentIndex: keyIndex
-        };
-    }
-
-    // If using a proxy for Gemini, we also use the custom fetch-based implementation
-    if (proxyUrl) {
-        return {
-            ai: createProxyClient(key, proxyUrl, 'gemini'),
-            keyCount: apiKeys.length > 0 ? apiKeys.length : 1,
-            currentIndex: keyIndex
-        };
-    }
-
     return {
-        ai: new GoogleGenAI({ apiKey: key }),
-        keyCount: apiKeys.length > 0 ? apiKeys.length : 1,
+        ai: new GoogleGenAI({ apiKey: key, httpOptions: proxyUrl ? { baseUrl: proxyUrl } : undefined }),
+        keyCount: key4uConfig.enabled ? 1 : (apiKeys.length > 0 ? apiKeys.length : 1),
         currentIndex: keyIndex
     };
   }, [apiKeys, key4uConfig]);
@@ -340,7 +371,7 @@ export default function App() {
     const runProcessing = async (keyIdx = 0): Promise<void> => {
         try {
             const scriptText = await readTextFile(file);
-            const { ai } = getAiInstance(keyIdx);
+            let newTableData: TableRowData[] = [];
             
             let segmentationInstruction = '';
             if (method === 'current') {
@@ -351,38 +382,75 @@ export default function App() {
               segmentationInstruction = `Phân đoạn kịch bản theo yêu cầu sau: ${customRule}`;
             }
 
-            const systemInstruction = `Bạn là một chuyên gia kịch bản. Chuyển kịch bản thành bảng phân cảnh 5 cột Markdown: STT, Ngôn ngữ gốc, Tiếng Việt, Tóm tắt, Prompt tiếng Anh chi tiết.
+            if (key4uConfig.enabled && key4uConfig.apiKey) {
+                const systemInstruction = `Bạn là một chuyên gia kịch bản. Chuyển kịch bản thành mảng JSON chứa các object (Scene). Mỗi object có các trường: "stt" (chuỗi), "ngonNguGoc" (chuỗi), "tiengViet" (chuỗi), "tomTat" (chuỗi), "prompt" (chuỗi).
+QUY TẮC PHÂN CẢNH: ${segmentationInstruction}
+NGÔN NGỮ GỐC: Giữ nguyên văn bản gốc của kịch bản đã upload, chỉ thực hiện phân đoạn theo yêu cầu, tuyệt đối không tóm tắt hay thay đổi từ ngữ.
+TIẾNG VIỆT: Dịch "Ngôn ngữ gốc" sang tiếng Việt (nếu "Ngôn ngữ gốc" đã là tiếng Việt thì giữ nguyên).
+PROMPT: Viết prompt tiếng Anh chi tiết cho bối cảnh.
+LƯU Ý: Chỉ trả về mảng JSON hợp lệ, không thêm văn bản thừa.`;
+
+                const scenes = await attemptKey4UGeneration(
+                    systemInstruction,
+                    `Kịch bản thô: "${scriptText}"`,
+                    key4uConfig.apiKey,
+                    key4uConfig.proxyUrl
+                );
+
+                if (!Array.isArray(scenes) || scenes.length === 0) throw new Error("AI không tạo được dữ liệu kịch bản hợp lệ.");
+
+                newTableData = scenes.map((scene: any, index: number) => {
+                    const stt = scene.stt || String(index + 1);
+                    const id = parseInt(String(stt).replace(/[^0-9]/g, ''), 10) || (index + 1);
+                    return {
+                        id,
+                        originalRow: [stt, scene.ngonNguGoc || '', scene.tiengViet || '', scene.tomTat || '', scene.prompt || ''],
+                        contextPrompt: scene.prompt || '',
+                        selectedCharacterIndices: getCharacterIndicesFromStt(stt, characters, defaultCharacterIndices),
+                        generatedImages: [],
+                        mainImageIndex: -1,
+                        isGenerating: false,
+                        error: null,
+                        videoPrompt: '',
+                        isGeneratingPrompt: false,
+                        imagePrompt: ''
+                    };
+                });
+            } else {
+                const { ai } = getAiInstance(keyIdx);
+                const systemInstruction = `Bạn là một chuyên gia kịch bản. Chuyển kịch bản thành bảng phân cảnh 5 cột Markdown: STT, Ngôn ngữ gốc, Tiếng Việt, Tóm tắt, Prompt tiếng Anh chi tiết.
 QUY TẮC PHÂN CẢNH: ${segmentationInstruction}
 NGÔN NGỮ GỐC: Giữ nguyên văn bản gốc của kịch bản đã upload, chỉ thực hiện phân đoạn theo yêu cầu, tuyệt đối không tóm tắt hay thay đổi từ ngữ.
 TIẾNG VIỆT: Dịch "Ngôn ngữ gốc" sang tiếng Việt (nếu "Ngôn ngữ gốc" đã là tiếng Việt thì giữ nguyên).
 PROMPT: Viết prompt tiếng Anh chi tiết cho bối cảnh.
 LƯU Ý: Không thêm văn bản thừa ngoài bảng Markdown.`;
 
-            const response = await ai.models.generateContent({
-                model: selectedModel, 
-                contents: `${systemInstruction}\n\nKịch bản thô: "${scriptText}"`,
-            });
+                const response = await ai.models.generateContent({
+                    model: selectedModel, 
+                    contents: `${systemInstruction}\n\nKịch bản thô: "${scriptText}"`,
+                });
 
-            const tableRows = parseMarkdownTables(response.text || '');
-            if (tableRows.length === 0) throw new Error("AI không tạo được bảng kịch bản.");
+                const tableRows = parseMarkdownTables(response.text || '');
+                if (tableRows.length === 0) throw new Error("AI không tạo được bảng kịch bản.");
 
-            const newTableData: TableRowData[] = tableRows.map((cols, index) => {
-                const stt = cols[0] || String(index + 1);
-                const id = parseInt(String(stt).replace(/[^0-9]/g, ''), 10) || (index + 1);
-                return {
-                    id,
-                    originalRow: [stt, cols[1] || '', cols[2] || '', cols[3] || '', cols[4] || ''],
-                    contextPrompt: cols[4] || '',
-                    selectedCharacterIndices: getCharacterIndicesFromStt(stt, characters, defaultCharacterIndices),
-                    generatedImages: [],
-                    mainImageIndex: -1,
-                    isGenerating: false,
-                    error: null,
-                    videoPrompt: '',
-                    isGeneratingPrompt: false,
-                    imagePrompt: ''
-                };
-            });
+                newTableData = tableRows.map((cols, index) => {
+                    const stt = cols[0] || String(index + 1);
+                    const id = parseInt(String(stt).replace(/[^0-9]/g, ''), 10) || (index + 1);
+                    return {
+                        id,
+                        originalRow: [stt, cols[1] || '', cols[2] || '', cols[3] || '', cols[4] || ''],
+                        contextPrompt: cols[4] || '',
+                        selectedCharacterIndices: getCharacterIndicesFromStt(stt, characters, defaultCharacterIndices),
+                        generatedImages: [],
+                        mainImageIndex: -1,
+                        isGenerating: false,
+                        error: null,
+                        videoPrompt: '',
+                        isGeneratingPrompt: false,
+                        imagePrompt: ''
+                    };
+                });
+            }
             setTableData(newTableData);
             showToast('Xử lý kịch bản thành công!', 'success');
         } catch (error: any) {
