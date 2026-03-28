@@ -1,6 +1,7 @@
 
 import React, { useState } from 'react';
 import { GoogleGenAI } from '@google/genai';
+import { createProxyClient } from '../src/lib/ai-provider';
 import type { GeminiModel, ImageGenModel } from '../types';
 import { ToastType } from './Toast';
 
@@ -48,11 +49,28 @@ export const ApiKeyManager: React.FC<ApiKeyManagerProps> = ({
 
   const validateApiKey = async (key: string, proxyUrl?: string): Promise<boolean> => {
     try {
-      const ai = new GoogleGenAI({ apiKey: key, baseUrl: proxyUrl });
-      await ai.models.generateContent({
-        model: 'gemini-3-flash-preview',
-        contents: 'hi',
-      });
+      // If it's a Key4U key (starts with sk- or has proxyUrl), use the Key4U client
+      const isKey4U = key.startsWith('sk-') || (proxyUrl && proxyUrl.includes('key4u'));
+      
+      if (isKey4U) {
+        const client = createProxyClient(key, proxyUrl || 'https://api.key4u.shop', 'openai');
+        await client.models.generateContent({
+          model: 'gemini-1.5-flash', // Use a standard model for validation
+          contents: 'hi',
+        });
+      } else if (proxyUrl) {
+        const client = createProxyClient(key, proxyUrl, 'gemini');
+        await client.models.generateContent({
+          model: 'gemini-1.5-flash',
+          contents: 'hi',
+        });
+      } else {
+        const ai = new GoogleGenAI({ apiKey: key });
+        await ai.models.generateContent({
+          model: 'gemini-1.5-flash',
+          contents: 'hi',
+        });
+      }
       return true;
     } catch (error: any) {
       console.error("API Key validation failed:", error);

@@ -1,5 +1,6 @@
 
 import React, { useState, useCallback, ChangeEvent, useEffect, useRef } from 'react';
+import { createProxyClient } from './src/lib/ai-provider';
 import { GoogleGenAI } from '@google/genai';
 import { STYLES, PRESET_PROMPT_CONTEXT } from './constants';
 import type { Style, Character, TableRowData, ExcelRow, AdjustmentOptions, ColumnMapping, ChatMessage, GeminiModel, ImageGenModel, AspectRatio, SavedSession, SavedSessionRow } from './types';
@@ -111,7 +112,7 @@ export default function App() {
 
   const [key4uConfig, setKey4uConfig] = useState<{ apiKey: string; proxyUrl: string }>(() => {
     const saved = localStorage.getItem('key4u_config');
-    return saved ? JSON.parse(saved) : { apiKey: '', proxyUrl: 'https://api.key4u.shop/v1' };
+    return saved ? JSON.parse(saved) : { apiKey: '', proxyUrl: 'https://api.key4u.shop' };
   });
 
   const [pendingScriptFile, setPendingScriptFile] = useState<File | null>(null);
@@ -231,9 +232,27 @@ export default function App() {
     const maskedKey = key.length > 8 ? `${key.substring(0, 4)}...${key.substring(key.length - 4)}` : '***';
     console.log(`[AI Engine] [${provider.toUpperCase()}] Sử dụng Key: ${maskedKey}${proxyUrl ? ` qua Proxy: ${proxyUrl}` : ''}`);
     
+    // If using Key4U, we use a custom fetch-based implementation because Key4U is OpenAI-compatible
+    if (provider === 'key4u') {
+        return {
+            ai: createProxyClient(key, proxyUrl || 'https://api.key4u.shop', 'openai'),
+            keyCount: 1,
+            currentIndex: keyIndex
+        };
+    }
+
+    // If using a proxy for Gemini, we also use the custom fetch-based implementation
+    if (proxyUrl) {
+        return {
+            ai: createProxyClient(key, proxyUrl, 'gemini'),
+            keyCount: apiKeys.length > 0 ? apiKeys.length : 1,
+            currentIndex: keyIndex
+        };
+    }
+
     return {
-        ai: new GoogleGenAI({ apiKey: key, baseUrl: proxyUrl }),
-        keyCount: provider === 'key4u' ? 1 : (apiKeys.length > 0 ? apiKeys.length : 1),
+        ai: new GoogleGenAI({ apiKey: key }),
+        keyCount: apiKeys.length > 0 ? apiKeys.length : 1,
         currentIndex: keyIndex
     };
   }, [apiKeys, key4uConfig]);
