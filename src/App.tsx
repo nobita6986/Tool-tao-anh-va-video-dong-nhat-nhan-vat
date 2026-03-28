@@ -3,7 +3,7 @@ import React, { useState, useCallback, ChangeEvent, useEffect, useRef } from 're
 import { GoogleGenAI } from '@google/genai';
 import { STYLES, PRESET_PROMPT_CONTEXT } from './constants';
 import type { Style, Character, TableRowData, ExcelRow, AdjustmentOptions, ColumnMapping, ChatMessage, GeminiModel, ImageGenModel, AspectRatio, SavedSession, SavedSessionRow } from './types';
-import { StyleSelector } from './components/StyleSelector';
+import { StyleSelector } from './components/StyleSelectorView';
 import { CharacterManager } from './components/CharacterManager';
 import { ResultsView } from './components/ResultsView';
 import { ImageModal } from './components/ImageModal';
