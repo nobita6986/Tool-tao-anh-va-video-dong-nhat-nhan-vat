@@ -109,6 +109,11 @@ export default function App() {
     return saved ? JSON.parse(saved) : [];
   });
 
+  const [key4uConfig, setKey4uConfig] = useState<{ apiKey: string; proxyUrl: string }>(() => {
+    const saved = localStorage.getItem('key4u_config');
+    return saved ? JSON.parse(saved) : { apiKey: '', proxyUrl: 'https://api.key4u.shop/v1' };
+  });
+
   const [pendingScriptFile, setPendingScriptFile] = useState<File | null>(null);
 
   const [chatState, setChatState] = useState<'closed' | 'open' | 'minimized'>('closed');
@@ -207,20 +212,31 @@ export default function App() {
   const toggleTheme = () => setTheme(prevTheme => prevTheme === 'dark' ? 'light' : 'dark');
 
   const getAiInstance = useCallback((keyIndex = 0) => {
-    const availableKeys = apiKeys.length > 0 ? apiKeys : [process.env.API_KEY || ''];
-    const safeIndex = keyIndex % availableKeys.length;
-    const key = availableKeys[safeIndex];
+    let key = '';
+    let proxyUrl = undefined;
+    let provider = 'gemini';
+
+    if (key4uConfig.apiKey) {
+        key = key4uConfig.apiKey;
+        proxyUrl = key4uConfig.proxyUrl;
+        provider = 'key4u';
+    } else {
+        const availableKeys = apiKeys.length > 0 ? apiKeys : [process.env.API_KEY || ''];
+        const safeIndex = keyIndex % availableKeys.length;
+        key = availableKeys[safeIndex];
+        provider = 'gemini';
+    }
     
     // Mask key for logging safety
     const maskedKey = key.length > 8 ? `${key.substring(0, 4)}...${key.substring(key.length - 4)}` : '***';
-    console.log(`[AI Engine] Sử dụng Key #${safeIndex + 1}: ${maskedKey}`);
+    console.log(`[AI Engine] [${provider.toUpperCase()}] Sử dụng Key: ${maskedKey}${proxyUrl ? ` qua Proxy: ${proxyUrl}` : ''}`);
     
     return {
-        ai: new GoogleGenAI({ apiKey: key }),
-        keyCount: availableKeys.length,
-        currentIndex: safeIndex
+        ai: new GoogleGenAI({ apiKey: key, baseUrl: proxyUrl }),
+        keyCount: provider === 'key4u' ? 1 : (apiKeys.length > 0 ? apiKeys.length : 1),
+        currentIndex: keyIndex
     };
-  }, [apiKeys]);
+  }, [apiKeys, key4uConfig]);
 
   useEffect(() => {
     if (tableData.length > 0) {
@@ -760,9 +776,17 @@ LƯU Ý: Không thêm văn bản thừa ngoài bảng Markdown.`;
         isOpen={isApiKeyManagerOpen} 
         onClose={() => setIsApiKeyManagerOpen(false)} 
         apiKeys={apiKeys} 
-        setApiKeys={handleUpdateApiKeys} 
-        selectedModel={selectedModel} 
-        onSelectModel={handleUpdateModel} 
+        setApiKeys={(keys) => {
+            setApiKeys(keys);
+            localStorage.setItem('user_api_keys', JSON.stringify(keys));
+        }}
+        key4uConfig={key4uConfig}
+        setKey4uConfig={(config) => {
+            setKey4uConfig(config);
+            localStorage.setItem('key4u_config', JSON.stringify(config));
+        }}
+        selectedModel={selectedModel}
+        onSelectModel={handleUpdateModel}
         selectedImageModel={selectedImageModel}
         onSelectImageModel={handleUpdateImageModel}
         showToast={showToast}
